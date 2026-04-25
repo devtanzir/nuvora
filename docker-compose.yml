@@ -1,12 +1,13 @@
 services:
   postgres:
-    image: postgres:16-alpine
+    image: postgres:16
     container_name: nuvora_db
     restart: unless-stopped
     environment:
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: admin
+      POSTGRES_USER: nuvora_user
+      POSTGRES_PASSWORD: nuvora_pass123
       POSTGRES_DB: nuvora_db
+      POSTGRES_HOST_AUTH_METHOD: trust
     ports:
       - '5432:5432'
     volumes:
@@ -23,6 +24,35 @@ services:
       - '5050:80'
     depends_on:
       - postgres
+  
+
+  mysql:
+    image: mysql:8
+    container_name: test_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: nuvora_db
+      MYSQL_USER: test_user
+      MYSQL_PASSWORD: test_pass
+    ports:
+      - '3306:3306'
+    volumes:
+      - test_mysql_data:/var/lib/mysql
+
+  phpmyadmin:
+    image: phpmyadmin
+    container_name: test_phpmyadmin
+    restart: unless-stopped
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      MYSQL_ROOT_PASSWORD: root123
+    ports:
+      - '8080:80'
+    depends_on:
+      - mysql
 
 volumes:
   nuvora_postgres_data:
+  test_mysql_data:
