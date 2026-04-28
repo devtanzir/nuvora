@@ -4,6 +4,10 @@ import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
+import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
+import { TransformInterceptor } from './common/interceptors/transform.interceptor';
+import { ResponseInterceptor } from './common/interceptors/response.interceptor';
+import { AllExceptionsFilter } from './common/filters/http-exception.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -32,6 +36,16 @@ async function bootstrap() {
       transform: true, // Auto type conversion
     }),
   );
+
+  // Global interceptor
+  app.useGlobalInterceptors(
+    new LoggingInterceptor(),
+    new TransformInterceptor(),
+    new ResponseInterceptor()
+  )
+
+  // Global exception filter
+  app.useGlobalFilters(new AllExceptionsFilter());
 
   // Swagger setup
   const config = new DocumentBuilder()
