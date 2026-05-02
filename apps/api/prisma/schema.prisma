@@ -142,14 +142,14 @@ model PasswordResetToken {
 model RefreshToken {
   id        String   @id @default(cuid())
   userId    String
-  token     String   @unique
+  token     String   @db.VarChar(500)
   expiresAt DateTime
   createdAt DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@unique([token(length: 255)])
   @@index([userId])
-  @@index([token])
   @@map("refresh_tokens")
 }
 
