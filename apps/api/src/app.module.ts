@@ -6,6 +6,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { MailModule } from './modules/mail/mail.module';
+import { UsersModule } from './modules/users/users.module';
 
 @Module({
   imports: [
@@ -28,6 +29,8 @@ import { MailModule } from './modules/mail/mail.module';
     AuthModule,
 
     MailModule,
+
+    UsersModule,
 
     // Feature modules (pore add korbo)
   ],
