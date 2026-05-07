@@ -185,7 +185,8 @@ NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=
 | Project Setup | ✅ Complete |
 | Database Schema | ✅ Complete |
 | API Design | ✅ Complete |
-| Auth Module | 🔄 In Progress |
+| Auth Module | ✅ In Progress |
+| User Module | 🔄 In Progress |
 | Upload Module | ⏳ Pending |
 | Category Module | ⏳ Pending |
 | Product Module | ⏳ Pending |
