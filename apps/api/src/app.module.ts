@@ -10,7 +10,7 @@ import { UsersModule } from './modules/users/users.module';
 
 @Module({
   imports: [
-    // Config — .env load korbe globally
+    // Confirm to load .env file and make env variables globally available
     ConfigModule.forRoot({
       isGlobal: true,
     }),
@@ -31,8 +31,6 @@ import { UsersModule } from './modules/users/users.module';
     MailModule,
 
     UsersModule,
-
-    // Feature modules (pore add korbo)
   ],
   controllers: [AppController],
   providers: [AppService],

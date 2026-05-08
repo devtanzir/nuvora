@@ -31,8 +31,8 @@ async function bootstrap() {
   // Global validation pipe
   app.useGlobalPipes(
     new ValidationPipe({
-      whitelist: true, // DTO te nai emon fields strip korbe
-      forbidNonWhitelisted: true, // Unknown fields jodi ashe tahole error
+      whitelist: true, // strip properties that do not have any decorators
+      forbidNonWhitelisted: true, // If there are extra fields, throw error
       transform: true, // Auto type conversion
     }),
   );
