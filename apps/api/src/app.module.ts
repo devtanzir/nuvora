@@ -9,6 +9,8 @@ import { MailModule } from './modules/mail/mail.module';
 import { UsersModule } from './modules/users/users.module';
 import { CategoriesModule } from './modules/categories/categories.module';
 import { ProductsModule } from './modules/products/products.module';
+import { CartModule } from './modules/cart/cart.module';
+import { WishlistModule } from './modules/wishlist/wishlist.module';
 
 @Module({
   imports: [
@@ -37,6 +39,10 @@ import { ProductsModule } from './modules/products/products.module';
     CategoriesModule,
 
     ProductsModule,
+
+    CartModule,
+
+    WishlistModule,
   ],
   controllers: [AppController],
   providers: [AppService],
