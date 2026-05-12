@@ -13,6 +13,7 @@ import { CartModule } from './modules/cart/cart.module';
 import { WishlistModule } from './modules/wishlist/wishlist.module';
 import { UploadController } from './modules/upload/upload.controller';
 import { UploadModule } from './modules/upload/upload.module';
+import { ReviewsModule } from './modules/reviews/reviews.module';
 
 @Module({
   imports: [
@@ -47,6 +48,8 @@ import { UploadModule } from './modules/upload/upload.module';
     WishlistModule,
 
     UploadModule,
+
+    ReviewsModule,
   ],
   controllers: [AppController, UploadController],
   providers: [AppService],
