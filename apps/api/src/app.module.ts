@@ -15,6 +15,7 @@ import { UploadController } from './modules/upload/upload.controller';
 import { UploadModule } from './modules/upload/upload.module';
 import { ReviewsModule } from './modules/reviews/reviews.module';
 import { PromoCodesModule } from './modules/promo-codes/promo-codes.module';
+import { OrdersModule } from './modules/orders/orders.module';
 
 @Module({
   imports: [
@@ -53,6 +54,8 @@ import { PromoCodesModule } from './modules/promo-codes/promo-codes.module';
     ReviewsModule,
 
     PromoCodesModule,
+
+    OrdersModule,
   ],
   controllers: [AppController, UploadController],
   providers: [AppService],
