@@ -35,7 +35,7 @@ export class PromoCodesController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Get all promo codes — Admin only' })
+  @ApiOperation({ summary: 'Get all promo codes - Admin only' })
   async findAll(
     @Query('page') page?: number,
     @Query('limit') limit?: number,
@@ -53,7 +53,7 @@ export class PromoCodesController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Create promo code — Admin only' })
+  @ApiOperation({ summary: 'Create promo code - Admin only' })
   async create(@Body() dto: CreatePromoCodeDto) {
     const data = await this.promoCodesService.create(dto);
     return { message: 'Promo code created successfully', data };
@@ -63,7 +63,7 @@ export class PromoCodesController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Update promo code — Admin only' })
+  @ApiOperation({ summary: 'Update promo code - Admin only' })
   async update(@Param('id') id: string, @Body() dto: UpdatePromoCodeDto) {
     const data = await this.promoCodesService.update(id, dto);
     return { message: 'Promo code updated successfully', data };
@@ -73,7 +73,7 @@ export class PromoCodesController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Toggle promo code — Admin only' })
+  @ApiOperation({ summary: 'Toggle promo code - Admin only' })
   async toggle(@Param('id') id: string) {
     const data = await this.promoCodesService.toggle(id);
     const message = data.isActive ? 'Promo code activated' : 'Promo code deactivated';
@@ -84,7 +84,7 @@ export class PromoCodesController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Delete promo code — Admin only' })
+  @ApiOperation({ summary: 'Delete promo code - Admin only' })
   async delete(@Param('id') id: string) {
     return this.promoCodesService.delete(id);
   }

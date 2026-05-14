@@ -142,7 +142,7 @@ export class OrdersService {
   }
 
   // ============================================================
-  // Create Order (from webhook or manual)
+  // Create Order
   // ============================================================
 
   private async createOrderFromPayment(paymentIntent: Stripe.PaymentIntent) {
@@ -191,10 +191,10 @@ export class OrdersService {
       },
     });
 
-    // Cart clear করো
+    // Clear cart
     await this.prisma.cartItem.deleteMany({ where: { cartId: cart.id } });
 
-    // Stock update করো
+    // Stock update
     for (const item of cart.items) {
       if (item.variantId) {
         await this.prisma.productVariant.update({
@@ -402,7 +402,7 @@ export class OrdersService {
   }
 
   // ============================================================
-  // Admin — Get All Orders
+  // Admin - Get All Orders
   // ============================================================
 
   async adminGetOrders(
@@ -454,7 +454,7 @@ export class OrdersService {
   }
 
   // ============================================================
-  // Admin — Update Order Status
+  // Admin - Update Order Status
   // ============================================================
 
   async updateOrderStatus(orderId: string, dto: UpdateOrderStatusDto) {
@@ -495,7 +495,7 @@ export class OrdersService {
   }
 
   // ============================================================
-  // Admin — Process Refund
+  // Admin - Process Refund
   // ============================================================
 
   async processRefund(orderId: string, dto: ProcessRefundDto) {

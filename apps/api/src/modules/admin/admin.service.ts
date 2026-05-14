@@ -217,7 +217,6 @@ export class AdminService {
       },
     });
 
-    // Product এ group করো
     const productMap = new Map<string, any>();
     for (const variant of variants) {
       if (!productMap.has(variant.product.id)) {

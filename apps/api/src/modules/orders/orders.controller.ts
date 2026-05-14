@@ -33,7 +33,7 @@ export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
 
   // ============================================================
-  // Stripe Webhook — Public
+  // Stripe Webhook - Public
   // ============================================================
 
   @Post('stripe-webhook')
@@ -138,7 +138,7 @@ export class OrdersController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Get all orders — Admin only' })
+  @ApiOperation({ summary: 'Get all orders - Admin only' })
   async adminGetOrders(
     @Query('page') page?: number,
     @Query('limit') limit?: number,
@@ -158,7 +158,7 @@ export class OrdersController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Update order status — Admin only' })
+  @ApiOperation({ summary: 'Update order status - Admin only' })
   async updateOrderStatus(
     @Param('id') orderId: string,
     @Body() dto: UpdateOrderStatusDto,
@@ -171,7 +171,7 @@ export class OrdersController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Process refund — Admin only' })
+  @ApiOperation({ summary: 'Process refund - Admin only' })
   async processRefund(
     @Param('id') orderId: string,
     @Body() dto: ProcessRefundDto,

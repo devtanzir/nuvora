@@ -116,7 +116,7 @@ export class ReviewsService {
 
     if (!product) throw new NotFoundException('Product not found');
 
-    // Order এ এই product আছে কিনা check
+    // Purchase verification: user must have a delivered order with this product to review
     const orderItem = await this.prisma.orderItem.findFirst({
       where: {
         productId,

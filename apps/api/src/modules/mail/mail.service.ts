@@ -9,7 +9,7 @@ export class MailService {
     const verificationUrl = `${clientUrl}/verify-email?token=${token}`;
     await this.mailerService.sendMail({
       to: email,
-      subject: 'Verify your email — Nuvora',
+      subject: 'Verify your email - Nuvora',
       template: 'verify-email',
       context: {
         name,

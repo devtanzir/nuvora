@@ -34,7 +34,7 @@ export class BannersController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Get all banners — Admin only' })
+  @ApiOperation({ summary: 'Get all banners - Admin only' })
   async findAll() {
     const data = await this.bannersService.findAll();
     return { data };
@@ -44,7 +44,7 @@ export class BannersController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Create banner — Admin only' })
+  @ApiOperation({ summary: 'Create banner - Admin only' })
   async create(@Body() dto: CreateBannerDto) {
     const data = await this.bannersService.create(dto);
     return { message: 'Banner created successfully', data };
@@ -54,7 +54,7 @@ export class BannersController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Reorder banners — Admin only' })
+  @ApiOperation({ summary: 'Reorder banners - Admin only' })
   async reorder(@Body() dto: ReorderBannersDto) {
     return this.bannersService.reorder(dto);
   }
@@ -63,7 +63,7 @@ export class BannersController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Update banner — Admin only' })
+  @ApiOperation({ summary: 'Update banner - Admin only' })
   async update(@Param('id') id: string, @Body() dto: UpdateBannerDto) {
     const data = await this.bannersService.update(id, dto);
     return { message: 'Banner updated successfully', data };
@@ -73,7 +73,7 @@ export class BannersController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Delete banner — Admin only' })
+  @ApiOperation({ summary: 'Delete banner - Admin only' })
   async delete(@Param('id') id: string) {
     return this.bannersService.delete(id);
   }
