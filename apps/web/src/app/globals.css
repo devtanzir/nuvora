@@ -1,0 +1,178 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist);
+  --font-mono: var(--font-geist-mono);
+  --font-heading: var(--font-playfair);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+
+  /* Nuvora Brand Colors */
+  --color-navy: var(--navy);
+  --color-navy-light: var(--navy-light);
+  --color-navy-dark: var(--navy-dark);
+  --color-gold: var(--gold);
+  --color-gold-light: var(--gold-light);
+  --color-gold-dark: var(--gold-dark);
+}
+
+:root {
+  /* Nuvora Brand */
+  --navy: #1B2D4F;
+  --navy-light: #243d6a;
+  --navy-dark: #111e33;
+  --gold: #C9A84C;
+  --gold-light: #d4b86a;
+  --gold-dark: #a8892f;
+
+  /* Light Mode */
+  --background: oklch(0.99 0 0);
+  --foreground: #1B2D4F;
+  --card: oklch(1 0 0);
+  --card-foreground: #1B2D4F;
+  --popover: oklch(1 0 0);
+  --popover-foreground: #1B2D4F;
+  --primary: #1B2D4F;
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: #1B2D4F;
+  --muted: oklch(0.96 0 0);
+  --muted-foreground: oklch(0.5 0 0);
+  --accent: #C9A84C;
+  --accent-foreground: oklch(1 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.9 0 0);
+  --input: oklch(0.92 0 0);
+  --ring: #C9A84C;
+  --radius: 0.5rem;
+
+  /* Charts */
+  --chart-1: #1B2D4F;
+  --chart-2: #C9A84C;
+  --chart-3: #243d6a;
+  --chart-4: #d4b86a;
+  --chart-5: oklch(0.439 0 0);
+
+  /* Sidebar */
+  --sidebar: #1B2D4F;
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: #C9A84C;
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: #243d6a;
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: #C9A84C;
+}
+
+.dark {
+  /* Nuvora Brand Dark */
+  --background: #0d1624;
+  --foreground: oklch(0.95 0 0);
+  --card: #111e33;
+  --card-foreground: oklch(0.95 0 0);
+  --popover: #111e33;
+  --popover-foreground: oklch(0.95 0 0);
+  --primary: #C9A84C;
+  --primary-foreground: #0d1624;
+  --secondary: #1B2D4F;
+  --secondary-foreground: oklch(0.95 0 0);
+  --muted: #1B2D4F;
+  --muted-foreground: oklch(0.65 0 0);
+  --accent: #C9A84C;
+  --accent-foreground: #0d1624;
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 8%);
+  --input: oklch(1 0 0 / 10%);
+  --ring: #C9A84C;
+
+  /* Charts Dark */
+  --chart-1: #C9A84C;
+  --chart-2: #d4b86a;
+  --chart-3: #243d6a;
+  --chart-4: #1B2D4F;
+  --chart-5: oklch(0.556 0 0);
+
+  /* Sidebar Dark */
+  --sidebar: #111e33;
+  --sidebar-foreground: oklch(0.95 0 0);
+  --sidebar-primary: #C9A84C;
+  --sidebar-primary-foreground: #0d1624;
+  --sidebar-accent: #1B2D4F;
+  --sidebar-accent-foreground: oklch(0.95 0 0);
+  --sidebar-border: oklch(1 0 0 / 8%);
+  --sidebar-ring: #C9A84C;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+    scroll-behavior: smooth;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-heading;
+  }
+}
+
+@layer utilities {
+  .font-playfair {
+    font-family: var(--font-playfair);
+  }
+  .text-navy {
+    color: var(--navy);
+  }
+  .text-gold {
+    color: var(--gold);
+  }
+  .bg-navy {
+    background-color: var(--navy);
+  }
+  .bg-gold {
+    background-color: var(--gold);
+  }
+}
