@@ -20,8 +20,8 @@ export const authService = {
     email: string;
     password: string;
   }): Promise<LoginResponse> => {
-    const res = await api.post<ApiResponse<LoginResponse>>('/auth/login', data);
-    return res.data.data;
+    const res = await api.post<ApiResponse<{ data: LoginResponse }>>('/auth/login', data);
+    return res.data.data.data;
   },
 
   logout: async (): Promise<void> => {

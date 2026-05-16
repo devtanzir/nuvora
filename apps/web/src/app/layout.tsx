@@ -31,6 +31,10 @@ export const metadata: Metadata = {
   },
   description: 'Discover premium fashion at Nuvora. Elevate your style with our curated collection.',
   keywords: ['fashion', 'premium', 'clothing', 'nuvora'],
+    icons: {
+    icon: '/favicon.svg',
+    shortcut: '/favicon.svg',
+  },
 };
 
 export default function RootLayout({

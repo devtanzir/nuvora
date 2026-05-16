@@ -172,6 +172,9 @@
   .bg-navy {
     background-color: var(--navy);
   }
+  .bg-navy-light {
+    background-color: var(--navy-light);
+  }
   .bg-gold {
     background-color: var(--gold);
   }
