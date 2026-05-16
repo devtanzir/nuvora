@@ -23,7 +23,7 @@ async function bootstrap() {
 
   // CORS
   app.enableCors({
-    origin: process.env.FRONTEND_URL,
+    origin: process.env.CLIENT_URL,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
   });
@@ -41,8 +41,8 @@ async function bootstrap() {
   app.useGlobalInterceptors(
     new LoggingInterceptor(),
     new TransformInterceptor(),
-    new ResponseInterceptor()
-  )
+    new ResponseInterceptor(),
+  );
 
   // Global exception filter
   app.useGlobalFilters(new AllExceptionsFilter());
