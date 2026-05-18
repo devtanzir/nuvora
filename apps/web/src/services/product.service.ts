@@ -11,10 +11,8 @@ export const productService = {
       }
     });
 
-    const res = await api.get<
-      ApiResponse<{ products: Product[]; meta: Record<string, unknown> }>
-    >(`/products?${params.toString()}`);
-    return res.data.data;
+    const res = await api.get(`/products?${params.toString()}`);
+    return res.data.data.data as { products: Product[]; meta: Record<string, unknown> };
   },
 
   getProduct: async (slug: string): Promise<ProductDetail> => {
@@ -23,8 +21,8 @@ export const productService = {
   },
 
   getCategories: async (): Promise<Category[]> => {
-    const res = await api.get<ApiResponse<Category[]>>('/categories');
-    return res.data.data;
+    const res = await api.get('/categories');
+    return res.data.data.data as Category[];
   },
 
   getCategory: async (slug: string): Promise<Category> => {

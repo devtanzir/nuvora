@@ -26,3 +26,15 @@ export function slugify(text: string) {
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/(^-|-$)/g, '');
 }
+
+export function truncate(text: string, length: number = 100) {
+  if (text.length <= length) return text;
+  return `${text.slice(0, length)}...`;
+}
+
+export function getDiscountPercent(
+  original: number,
+  current: number,
+): number {
+  return Math.round(((original - current) / original) * 100);
+}

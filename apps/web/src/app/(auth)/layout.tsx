@@ -15,8 +15,8 @@ export default function AuthLayout({
     <div className="min-h-screen grid lg:grid-cols-2">
       {/* Left - Branding */}
       <div className="hidden lg:flex flex-col justify-between bg-navy p-12">
-        <Link href="/" className="text-white text-2xl font-playfair font-bold">
-          <NuvoraLogo className="h-auto w-32" />
+        <Link href="/">
+          <NuvoraLogo className="h-auto w-32" fillColor='#EEEADD' />
         </Link>
 
         <div className="space-y-4">
@@ -43,7 +43,7 @@ export default function AuthLayout({
             href="/"
             className="lg:hidden flex justify-center items-center mb-8"
           >
-            <NuvoraLogo className="h-auto w-32" fillColor='#1B2D4F' />
+            <NuvoraLogo className="h-auto w-32"/>
           </Link>
           {children}
         </div>

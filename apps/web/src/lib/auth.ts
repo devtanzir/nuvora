@@ -7,7 +7,7 @@ export const authCookies = {
 
   setToken: (token: string) => {
     Cookies.set(ACCESS_TOKEN_KEY, token, {
-      expires: 1 / 96, // 15 minutes
+      expires: 1, // 1 day
       sameSite: 'strict',
       secure: process.env.NODE_ENV === 'production',
     });
