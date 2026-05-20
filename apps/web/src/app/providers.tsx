@@ -6,6 +6,7 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { Toaster } from 'sonner';
 import { ThemeProvider } from 'next-themes';
 import { useMe } from '@/hooks/use-auth';
+import { LoginModal } from '@/components/common/login-modal';
 
 // ─── Auth initializer ─────────────────────────────────────────────
 function AuthInitializer() {
@@ -61,6 +62,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
       <QueryClientProvider client={queryClient}>
         <AuthInitializer />
         {children}
+        <LoginModal />
         <Toaster
           position="top-right"
           richColors

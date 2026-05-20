@@ -49,19 +49,21 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Protected routes - redirect to login if no valid token
+  // Protected routes - open login modal with redirect param
   if (protectedRoutes.some((route) => pathname.startsWith(route))) {
     if (!token) {
-      const loginUrl = new URL('/login', request.url);
-      loginUrl.searchParams.set('redirect', pathname);
-      return NextResponse.redirect(loginUrl);
+      const url = new URL('/', request.url);
+      url.searchParams.set('login', 'true');
+      url.searchParams.set('redirect', pathname);
+      return NextResponse.redirect(url);
     }
 
     const payload = decodeToken(token);
     if (!payload || isTokenExpired(payload)) {
-      const loginUrl = new URL('/login', request.url);
-      loginUrl.searchParams.set('redirect', pathname);
-      return NextResponse.redirect(loginUrl);
+      const url = new URL('/', request.url);
+      url.searchParams.set('login', 'true');
+      url.searchParams.set('redirect', pathname);
+      return NextResponse.redirect(url);
     }
 
     return NextResponse.next();
@@ -70,13 +72,17 @@ export function middleware(request: NextRequest) {
   // Admin routes - token required + ADMIN role required
   if (adminRoutes.some((route) => pathname.startsWith(route))) {
     if (!token) {
-      return NextResponse.redirect(new URL('/login', request.url));
+      const url = new URL('/', request.url);
+      url.searchParams.set('login', 'true');
+      return NextResponse.redirect(url);
     }
 
     const payload = decodeToken(token);
 
     if (!payload || isTokenExpired(payload)) {
-      return NextResponse.redirect(new URL('/login', request.url));
+      const url = new URL('/', request.url);
+      url.searchParams.set('login', 'true');
+      return NextResponse.redirect(url);
     }
 
     if (payload.role !== 'ADMIN') {

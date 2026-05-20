@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { Heart, ShoppingBag, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -10,7 +11,7 @@ import { formatPrice, getDiscountPercent } from '@/lib/utils';
 import { useAddToCart } from '@/hooks/use-cart';
 import { useAddToWishlist } from '@/hooks/use-wishlist';
 import { useAuthStore } from '@/store/auth.store';
-import Image from 'next/image';
+import { useUIStore } from '@/store/ui.store';
 
 interface ProductCardProps {
   product: Product;
@@ -18,6 +19,7 @@ interface ProductCardProps {
 
 export function ProductCard({ product }: ProductCardProps) {
   const { isAuthenticated } = useAuthStore();
+  const { openLoginModal } = useUIStore();
   const { mutate: addToCart, isPending: isAddingToCart } = useAddToCart();
   const { mutate: addToWishlist } = useAddToWishlist();
 
@@ -25,6 +27,23 @@ export function ProductCard({ product }: ProductCardProps) {
     product.originalPrice
       ? getDiscountPercent(product.originalPrice, product.price)
       : null;
+
+  const handleAddToCart = () => {
+    if (!isAuthenticated) {
+      openLoginModal();
+      return;
+    }
+    addToCart({ productId: product.id, quantity: 1 });
+  };
+
+  const handleAddToWishlist = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (!isAuthenticated) {
+      openLoginModal();
+      return;
+    }
+    addToWishlist(product.id);
+  };
 
   return (
     <div className="group relative bg-card rounded-xl overflow-hidden border border-border hover:border-gold/50 hover:shadow-lg transition-all duration-300">
@@ -59,20 +78,15 @@ export function ProductCard({ product }: ProductCardProps) {
             )}
           </div>
 
-          {/* Wishlist button */}
-          {isAuthenticated && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity bg-white/80 dark:bg-black/80 hover:bg-white dark:hover:bg-black rounded-full h-8 w-8 cursor-pointer"
-              onClick={(e) => {
-                e.preventDefault();
-                addToWishlist(product.id);
-              }}
-            >
-              <Heart className="h-4 w-4" />
-            </Button>
-          )}
+          {/* Wishlist button - always visible, handles auth check */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity bg-white/80 dark:bg-black/80 hover:bg-white dark:hover:bg-black rounded-full h-8 w-8 cursor-pointer"
+            onClick={handleAddToWishlist}
+          >
+            <Heart className="h-4 w-4" />
+          </Button>
         </div>
       </Link>
 
@@ -109,15 +123,13 @@ export function ProductCard({ product }: ProductCardProps) {
           )}
         </div>
 
-        {/* Add to cart */}
-        {isAuthenticated && product.stock > 0 && (
+        {/* Add to cart - always visible, handles auth check */}
+        {product.stock > 0 && (
           <Button
             size="sm"
             className="w-full bg-navy hover:bg-navy-light dark:bg-gold dark:hover:bg-gold-dark dark:text-navy text-white opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
             disabled={isAddingToCart}
-            onClick={() =>
-              addToCart({ productId: product.id, quantity: 1 })
-            }
+            onClick={handleAddToCart}
           >
             <ShoppingBag className="mr-2 h-3 w-3" />
             Add to Cart
