@@ -1,28 +1,15 @@
-function getErrorMessage(error: unknown, fallback = 'An unexpected error occurred'): string {
-  if (error instanceof Error) {
-    return error.message;
+import axios from 'axios';
+
+function getErrorMessage(
+  error: unknown,
+  fallback = 'An unexpected error occurred',
+): string {
+  if (axios.isAxiosError(error)) {
+    return error.response?.data?.message ?? error.message ?? fallback;
   }
 
-  if (
-    typeof error === 'object' &&
-    error !== null &&
-    'response' in error &&
-    typeof (error as Record<string, unknown>).response === 'object' &&
-    (error as Record<string, unknown>).response !== null
-  ) {
-    const response = (error as Record<string, unknown>).response as Record<string, unknown>;
-
-    if (
-      typeof response.data === 'object' &&
-      response.data !== null &&
-      'message' in response.data
-    ) {
-      const data = response.data as { message?: unknown };
-
-      if (typeof data.message === 'string') {
-        return data.message;
-      }
-    }
+  if (error instanceof Error) {
+    return error.message;
   }
 
   return fallback;

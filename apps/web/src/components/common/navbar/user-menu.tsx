@@ -12,18 +12,27 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useAuthStore } from '@/store/auth.store';
-import { useLogout } from '@/hooks/use-auth';
+import { useLogout, useMe } from '@/hooks/use-auth';
 import { ROUTES } from '@/constants/routes';
+import { useMounted } from '@/hooks/use-mounted';
 
 export function UserMenu() {
   const { user, isAuthenticated } = useAuthStore();
   const { mutate: logout, isPending } = useLogout();
+  const { isLoading } = useMe();
+
+const mounted = useMounted();
+
+  if (!mounted || isLoading) {
+    return <Skeleton className="h-8 w-8 rounded-full" />;
+  }
 
   if (!isAuthenticated) {
     return (
       <div className="hidden md:flex items-center gap-2">
-        <Button variant="ghost" size="sm" className='cursor-pointer' asChild>
+        <Button variant="ghost" size="sm" className="cursor-pointer" asChild>
           <Link href={ROUTES.LOGIN}>Sign In</Link>
         </Button>
         <Button
@@ -40,7 +49,11 @@ export function UserMenu() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="rounded-full cursor-pointer">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="rounded-full cursor-pointer"
+        >
           <Avatar className="h-8 w-8">
             <AvatarImage src={user?.avatar ?? ''} alt={user?.name} />
             <AvatarFallback className="bg-navy text-white text-xs">

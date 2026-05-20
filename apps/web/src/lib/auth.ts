@@ -2,18 +2,22 @@ import Cookies from 'js-cookie';
 
 const ACCESS_TOKEN_KEY = 'nuvora_access_token';
 
-export const authCookies = {
-  getToken: () => Cookies.get(ACCESS_TOKEN_KEY) ?? null,
+const isProduction = process.env.NODE_ENV === 'production';
 
-  setToken: (token: string) => {
+export const authCookies = {
+  getToken: (): string | null => {
+    return Cookies.get(ACCESS_TOKEN_KEY) ?? null;
+  },
+
+  setToken: (token: string): void => {
     Cookies.set(ACCESS_TOKEN_KEY, token, {
-      expires: 1, // 1 day
-      sameSite: 'strict',
-      secure: process.env.NODE_ENV === 'production',
+      expires: 1,
+      sameSite: isProduction ? 'strict' : 'lax',
+      secure: isProduction,
     });
   },
 
-  removeToken: () => {
+  removeToken: (): void => {
     Cookies.remove(ACCESS_TOKEN_KEY);
   },
 };

@@ -3,13 +3,19 @@ import { ApiResponse, Meta } from '../types/api.types';
 import { User } from '../types/auth.types';
 import { Address } from '../types/order.types';
 
-type UserNotification = {
+export type UserNotification = {
   id: string;
   title: string;
   message: string;
   read: boolean;
   createdAt: string;
 };
+
+export interface NotificationListResponse {
+  notifications: UserNotification[];
+  unreadCount: number;
+  meta: Meta;
+}
 
 export const userService = {
   getProfile: async (): Promise<User> => {
@@ -21,11 +27,8 @@ export const userService = {
     name?: string;
     avatar?: string;
   }): Promise<User> => {
-    const res = await api.patch<ApiResponse<{ message: string; data: User }>>(
-      '/users/profile',
-      data,
-    );
-    return res.data.data.data;
+    const res = await api.patch<ApiResponse<User>>('/users/profile', data);
+    return res.data.data;
   },
 
   changePassword: async (data: {
@@ -40,25 +43,23 @@ export const userService = {
     return res.data.data;
   },
 
-  createAddress: async (
-    data: Omit<Address, 'id'>,
-  ): Promise<Address> => {
-    const res = await api.post<ApiResponse<{ message: string; data: Address }>>(
+  createAddress: async (data: Omit<Address, 'id'>): Promise<Address> => {
+    const res = await api.post<ApiResponse<Address>>(
       '/users/addresses',
       data,
     );
-    return res.data.data.data;
+    return res.data.data;
   },
 
   updateAddress: async (
     id: string,
     data: Partial<Omit<Address, 'id'>>,
   ): Promise<Address> => {
-    const res = await api.patch<ApiResponse<{ message: string; data: Address }>>(
+    const res = await api.patch<ApiResponse<Address>>(
       `/users/addresses/${id}`,
       data,
     );
-    return res.data.data.data;
+    return res.data.data;
   },
 
   deleteAddress: async (id: string): Promise<void> => {
@@ -73,20 +74,16 @@ export const userService = {
     page?: number;
     limit?: number;
     unread?: boolean;
-  }) => {
+  }): Promise<NotificationListResponse> => {
     const query = new URLSearchParams();
     if (params?.page) query.append('page', String(params.page));
     if (params?.limit) query.append('limit', String(params.limit));
     if (params?.unread !== undefined)
       query.append('unread', String(params.unread));
 
-    const res = await api.get<
-      ApiResponse<{
-        notifications: UserNotification[];
-        unreadCount: number;
-        meta: Meta;
-      }>
-    >(`/users/notifications?${query.toString()}`);
+    const res = await api.get<ApiResponse<NotificationListResponse>>(
+      `/users/notifications?${query.toString()}`,
+    );
     return res.data.data;
   },
 

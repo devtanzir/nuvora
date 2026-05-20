@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { cartService } from '../services/cart.service';
@@ -8,21 +9,29 @@ import { useAuthStore } from '../store/auth.store';
 import { QUERY_KEYS } from '../constants/query-keys';
 import getErrorMessage from '../lib/error';
 
+// ─── useCart ──────────────────────────────────────────────────────
 export function useCart() {
   const { isAuthenticated } = useAuthStore();
   const { setCart } = useCartStore();
 
-  return useQuery({
+  const query = useQuery({
     queryKey: QUERY_KEYS.CART,
-    queryFn: async () => {
-      const data = await cartService.getCart();
-      setCart(data);
-      return data;
-    },
+    queryFn: cartService.getCart, // pure - no side effects
     enabled: isAuthenticated,
+    staleTime: 1000 * 60 * 2, // 2 minutes
   });
+
+  // Sync React Query cache → Zustand UI store
+  useEffect(() => {
+    if (query.data) {
+      setCart(query.data);
+    }
+  }, [query.data, setCart]);
+
+  return query;
 }
 
+// ─── useAddToCart ─────────────────────────────────────────────────
 export function useAddToCart() {
   const queryClient = useQueryClient();
   const { openCart } = useCartStore();
@@ -40,6 +49,7 @@ export function useAddToCart() {
   });
 }
 
+// ─── useUpdateCartItem ────────────────────────────────────────────
 export function useUpdateCartItem() {
   const queryClient = useQueryClient();
 
@@ -55,6 +65,7 @@ export function useUpdateCartItem() {
   });
 }
 
+// ─── useRemoveCartItem ────────────────────────────────────────────
 export function useRemoveCartItem() {
   const queryClient = useQueryClient();
 
@@ -62,7 +73,7 @@ export function useRemoveCartItem() {
     mutationFn: cartService.removeItem,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.CART });
-      toast.success('Item removed from cart');
+      toast.success('Item removed');
     },
     onError: (error: unknown) => {
       toast.error(getErrorMessage(error, 'Failed to remove item'));
@@ -70,6 +81,7 @@ export function useRemoveCartItem() {
   });
 }
 
+// ─── useClearCart ─────────────────────────────────────────────────
 export function useClearCart() {
   const queryClient = useQueryClient();
   const { clearCartState } = useCartStore();

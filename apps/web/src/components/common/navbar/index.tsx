@@ -12,21 +12,27 @@ import { ThemeToggle } from './theme-toggle';
 import { UserMenu } from './user-menu';
 import { useUIStore } from '@/store/ui.store';
 import { useAuthStore } from '@/store/auth.store';
+import { useMe } from '@/hooks/use-auth';
 import { ROUTES } from '@/constants/routes';
 import { cn } from '@/lib/utils';
 import { NuvoraLogo } from '../icons/nuvora-logo';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useMounted } from '@/hooks/use-mounted';
 
 export function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const { isMobileMenuOpen, toggleMobileMenu, closeMobileMenu } = useUIStore();
   const { isAuthenticated } = useAuthStore();
+  const { isLoading } = useMe();
+  const mounted = useMounted();
 
-  // Scroll detection
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 10);
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  const showSkeleton = !mounted || isLoading;
 
   return (
     <>
@@ -41,10 +47,7 @@ export function Navbar() {
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-20">
             {/* Logo */}
-            <Link
-              href={ROUTES.HOME}
-              className="text-xl"
-            >
+            <Link href={ROUTES.HOME} className="text-xl">
               <NuvoraLogo className="h-auto w-32" />
             </Link>
 
@@ -62,7 +65,13 @@ export function Navbar() {
               {isAuthenticated && <CartIcon />}
 
               <ThemeToggle />
-              <UserMenu />
+
+              {/* Show skeleton while auth resolves - prevents flash */}
+              {showSkeleton ? (
+                <Skeleton className="h-8 w-8 rounded-full" />
+              ) : (
+                <UserMenu />
+              )}
 
               {/* Mobile Menu Toggle */}
               <Button
@@ -108,9 +117,14 @@ export function Navbar() {
                 </Link>
               ))}
 
-              {!isAuthenticated && (
+              {!isAuthenticated && !showSkeleton && (
                 <div className="flex gap-2 pt-2 border-t border-border">
-                  <Button variant="outline" size="sm" className="flex-1" asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1"
+                    asChild
+                  >
                     <Link href={ROUTES.LOGIN} onClick={closeMobileMenu}>
                       Sign In
                     </Link>

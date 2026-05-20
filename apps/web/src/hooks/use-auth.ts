@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
@@ -7,21 +8,38 @@ import { authService } from '../services/auth.service';
 import { useAuthStore } from '../store/auth.store';
 import { QUERY_KEYS } from '../constants/query-keys';
 import { ROUTES } from '../constants/routes';
+import { authCookies } from '../lib/auth';
 import getErrorMessage from '../lib/error';
 
-
-
+// ─── useMe ───────────────────────────────────────────────────────
 export function useMe() {
-  const { isAuthenticated } = useAuthStore();
+  const { setAuth, clearAuth } = useAuthStore();
+  const hasToken = !!authCookies.getToken();
 
-  return useQuery({
+  const query = useQuery({
     queryKey: QUERY_KEYS.ME,
     queryFn: authService.getMe,
-    enabled: isAuthenticated,
+    enabled: hasToken,
     staleTime: 1000 * 60 * 10, // 10 minutes
+    retry: false,
   });
+
+  useEffect(() => {
+    if (query.data) {
+      // Token already in cookie, just sync user to store
+      const token = authCookies.getToken();
+      if (token) setAuth(query.data, token);
+    }
+
+    if (query.isError) {
+      clearAuth();
+    }
+  }, [query.data, query.isError, setAuth, clearAuth]);
+
+  return query;
 }
 
+// ─── useLogin ────────────────────────────────────────────────────
 export function useLogin() {
   const router = useRouter();
   const { setAuth } = useAuthStore();
@@ -46,6 +64,7 @@ export function useLogin() {
   });
 }
 
+// ─── useRegister ─────────────────────────────────────────────────
 export function useRegister() {
   const router = useRouter();
 
@@ -61,6 +80,7 @@ export function useRegister() {
   });
 }
 
+// ─── useLogout ───────────────────────────────────────────────────
 export function useLogout() {
   const router = useRouter();
   const { clearAuth } = useAuthStore();
@@ -71,11 +91,10 @@ export function useLogout() {
     onSuccess: () => {
       clearAuth();
       queryClient.clear();
-      router.push(ROUTES.LOGIN);
       toast.success('Logged out successfully');
+      router.push(ROUTES.LOGIN);
     },
     onError: () => {
-      // Clear auth even if API call fails
       clearAuth();
       queryClient.clear();
       router.push(ROUTES.LOGIN);
@@ -83,6 +102,7 @@ export function useLogout() {
   });
 }
 
+// ─── useForgotPassword ───────────────────────────────────────────
 export function useForgotPassword() {
   return useMutation({
     mutationFn: authService.forgotPassword,
@@ -95,6 +115,7 @@ export function useForgotPassword() {
   });
 }
 
+// ─── useResetPassword ────────────────────────────────────────────
 export function useResetPassword() {
   const router = useRouter();
 

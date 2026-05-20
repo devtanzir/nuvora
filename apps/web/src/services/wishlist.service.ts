@@ -1,6 +1,5 @@
 import api from '../lib/axios';
-import { ApiResponse } from '../types/api.types';
-import { Meta } from '../types/api.types';
+import { ApiResponse, Meta } from '../types/api.types';
 import { Product } from '../types/product.types';
 
 export interface WishlistItem {
@@ -15,16 +14,23 @@ export interface WishlistItem {
   };
 }
 
+export interface WishlistResponse {
+  items: WishlistItem[];
+  meta: Meta;
+}
+
 export const wishlistService = {
-  getWishlist: async (page = 1, limit = 20) => {
-    const res = await api.get<
-      ApiResponse<{ items: WishlistItem[]; meta: Meta }>
-    >(`/wishlist?page=${page}&limit=${limit}`);
+  getWishlist: async (page = 1, limit = 20): Promise<WishlistResponse> => {
+    const res = await api.get<ApiResponse<WishlistResponse>>(
+      `/wishlist?page=${page}&limit=${limit}`,
+    );
     return res.data.data;
   },
 
-  addToWishlist: async (productId: string) => {
-    const res = await api.post<ApiResponse<WishlistItem>>('/wishlist', { productId });
+  addToWishlist: async (productId: string): Promise<WishlistItem> => {
+    const res = await api.post<ApiResponse<WishlistItem>>('/wishlist', {
+      productId,
+    });
     return res.data.data;
   },
 
@@ -35,7 +41,7 @@ export const wishlistService = {
   moveToCart: async (
     productId: string,
     data: { variantId?: string; quantity?: number },
-  ) => {
+  ): Promise<{ cartItemId: string }> => {
     const res = await api.post<ApiResponse<{ cartItemId: string }>>(
       `/wishlist/${productId}/move-to-cart`,
       data,

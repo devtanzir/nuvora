@@ -13,22 +13,16 @@ export const cartService = {
     variantId?: string;
     quantity: number;
   }): Promise<CartItem> => {
-    const res = await api.post<ApiResponse<{ message: string; data: CartItem }>>(
-      '/cart/items',
-      data,
-    );
-    return res.data.data.data;
+    const res = await api.post<ApiResponse<CartItem>>('/cart/items', data);
+    return res.data.data;
   },
 
-  updateItem: async (
-    itemId: string,
-    quantity: number,
-  ): Promise<CartItem> => {
-    const res = await api.patch<ApiResponse<{ message: string; data: CartItem }>>(
+  updateItem: async (itemId: string, quantity: number): Promise<CartItem> => {
+    const res = await api.patch<ApiResponse<CartItem>>(
       `/cart/items/${itemId}`,
       { quantity },
     );
-    return res.data.data.data;
+    return res.data.data;
   },
 
   removeItem: async (itemId: string): Promise<void> => {
