@@ -7,6 +7,7 @@ import { Toaster } from 'sonner';
 import { ThemeProvider } from 'next-themes';
 import { useMe } from '@/hooks/use-auth';
 import { LoginModal } from '@/components/common/login-modal';
+import { CartDrawer } from '@/components/cart/cart-drawer';
 
 // ─── Auth initializer ─────────────────────────────────────────────
 function AuthInitializer() {
@@ -63,6 +64,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
         <AuthInitializer />
         {children}
         <LoginModal />
+        <CartDrawer />
         <Toaster
           position="top-right"
           richColors
