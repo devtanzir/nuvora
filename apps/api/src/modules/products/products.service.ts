@@ -18,119 +18,140 @@ export class ProductsService {
   // Get All Products
   // ============================================================
 
-  async findAll(query: ProductQueryDto) {
-    const {
-      page = 1,
-      limit = 20,
-      search,
-      categorySlug,
-      minPrice,
-      maxPrice,
-      inStock,
-      sortBy,
-    } = query;
+async findAll(query: ProductQueryDto) {
+  const {
+    page = 1,
+    limit = 20,
+    search,
+    categorySlug,
+    minPrice,
+    maxPrice,
+    inStock,
+    sortBy,
+    rating,
+  } = query;
 
-    const where: any = {
-      isActive: true,
-      isDeleted: false,
-    };
+  const where: any = {
+    isActive: true,
+    isDeleted: false,
+  };
 
-    if (search) {
-      where.name = { contains: search };
-    }
-
-    if (categorySlug) {
-      where.category = { slug: categorySlug };
-    }
-
-    if (minPrice !== undefined || maxPrice !== undefined) {
-      where.price = {};
-      if (minPrice !== undefined) where.price.gte = minPrice;
-      if (maxPrice !== undefined) where.price.lte = maxPrice;
-    }
-
-    if (inStock) {
-      where.variants = { some: { stock: { gt: 0 } } };
-    }
-
-    const orderBy: any = {};
-    switch (sortBy) {
-      case 'price_asc':
-        orderBy.price = 'asc';
-        break;
-      case 'price_desc':
-        orderBy.price = 'desc';
-        break;
-      case 'newest':
-        orderBy.createdAt = 'desc';
-        break;
-      case 'rating':
-        orderBy.reviews = { _count: 'desc' };
-        break;
-      case 'most_reviewed':
-        orderBy.reviews = { _count: 'desc' };
-        break;
-      default:
-        orderBy.createdAt = 'desc';
-    }
-
-    const [products, total] = await Promise.all([
-      this.prisma.product.findMany({
-        where,
-        orderBy,
-        skip: (page - 1) * limit,
-        take: limit,
-        select: {
-          id: true,
-          name: true,
-          slug: true,
-          price: true,
-          originalPrice: true,
-          isActive: true,
-          category: {
-            select: { id: true, name: true, slug: true },
-          },
-          images: {
-            where: { isPrimary: true },
-            select: { url: true },
-            take: 1,
-          },
-          reviews: {
-            select: { rating: true },
-          },
-          variants: {
-            select: { stock: true },
-          },
-        },
-      }),
-      this.prisma.product.count({ where }),
-    ]);
-
-    return {
-      products: products.map((p) => ({
-        id: p.id,
-        name: p.name,
-        slug: p.slug,
-        price: p.price,
-        originalPrice: p.originalPrice,
-        avgRating:
-          p.reviews.length > 0
-            ? p.reviews.reduce((sum, r) => sum + r.rating, 0) / p.reviews.length
-            : 0,
-        reviewCount: p.reviews.length,
-        stock: p.variants.reduce((sum, v) => sum + v.stock, 0),
-        isActive: p.isActive,
-        category: p.category,
-        primaryImage: p.images[0]?.url ?? null,
-      })),
-      meta: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-      },
-    };
+  if (search) {
+    where.name = { contains: search };
   }
+
+  if (categorySlug) {
+    where.category = { slug: categorySlug };
+  }
+
+  if (minPrice !== undefined || maxPrice !== undefined) {
+    where.price = {};
+    if (minPrice !== undefined) where.price.gte = minPrice;
+    if (maxPrice !== undefined) where.price.lte = maxPrice;
+  }
+
+  if (inStock) {
+    where.variants = { some: { stock: { gt: 0 } } };
+  }
+
+  const orderBy: any = {};
+  switch (sortBy) {
+    case 'price_asc':
+      orderBy.price = 'asc';
+      break;
+    case 'price_desc':
+      orderBy.price = 'desc';
+      break;
+    case 'newest':
+      orderBy.createdAt = 'desc';
+      break;
+    case 'rating':
+    case 'most_reviewed':
+      orderBy.reviews = { _count: 'desc' };
+      break;
+    default:
+      orderBy.createdAt = 'desc';
+  }
+
+  // Fetch more when rating filter is active
+  const fetchLimit = rating ? Math.max(limit * 5, 100) : limit;
+  const fetchSkip = rating ? 0 : (page - 1) * limit;
+
+  const [products, totalCount] = await Promise.all([
+    this.prisma.product.findMany({
+      where,
+      orderBy,
+      skip: fetchSkip,
+      take: fetchLimit,
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        price: true,
+        originalPrice: true,
+        isActive: true,
+        category: {
+          select: { id: true, name: true, slug: true },
+        },
+        images: {
+          where: { isPrimary: true },
+          select: { url: true },
+          take: 1,
+        },
+        reviews: {
+          select: { rating: true },
+        },
+        variants: {
+          select: { stock: true },
+        },
+      },
+    }),
+    this.prisma.product.count({ where }),
+  ]);
+
+  const mappedProducts = products.map((p) => ({
+    id: p.id,
+    name: p.name,
+    slug: p.slug,
+    price: p.price,
+    originalPrice: p.originalPrice,
+    avgRating:
+      p.reviews.length > 0
+        ? Math.round(
+            (p.reviews.reduce((sum, r) => sum + r.rating, 0) /
+              p.reviews.length) *
+              10,
+          ) / 10
+        : 0,
+    reviewCount: p.reviews.length,
+    stock: p.variants.reduce((sum, v) => sum + v.stock, 0),
+    isActive: p.isActive,
+    category: p.category,
+    primaryImage: p.images[0]?.url ?? null,
+  }));
+
+  // Application level rating filter
+  const filteredProducts = rating
+    ? mappedProducts.filter((p) => p.avgRating >= rating)
+    : mappedProducts;
+
+  // Manual pagination when rating filter active
+  const paginatedProducts = rating
+    ? filteredProducts.slice((page - 1) * limit, page * limit)
+    : filteredProducts;
+
+  const total = rating ? filteredProducts.length : totalCount;
+
+  return {
+    products: paginatedProducts,
+    meta: {
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    },
+  };
+}
 
   // ============================================================
   // Get Single Product

@@ -23,34 +23,35 @@ export class TransformInterceptor implements NestInterceptor {
     );
   }
 
-  private transformUrls(data: any): any {
-    if (!data) return data;
+private transformUrls(data: any): any {
+  if (!data) return data;
 
-    if (Array.isArray(data)) {
-      return data.map((item) => this.transformUrls(item));
-    }
+  if (data instanceof Date) return data;
 
-    if (typeof data === 'object') {
-      const transformed = { ...data };
-
-      // Image URL fields auto-detect
-      const imageFields = ['url', 'avatar', 'imageUrl', 'primaryImage'];
-
-      for (const key of Object.keys(transformed)) {
-        if (
-          imageFields.includes(key) &&
-          typeof transformed[key] === 'string' &&
-          !transformed[key].startsWith('http')
-        ) {
-          transformed[key] = `${this.baseUrl}/${transformed[key]}`;
-        } else if (typeof transformed[key] === 'object') {
-          transformed[key] = this.transformUrls(transformed[key]);
-        }
-      }
-
-      return transformed;
-    }
-
-    return data;
+  if (Array.isArray(data)) {
+    return data.map((item) => this.transformUrls(item));
   }
+
+  if (typeof data === 'object') {
+    const transformed = { ...data };
+
+    const imageFields = ['url', 'avatar', 'imageUrl', 'primaryImage'];
+
+    for (const key of Object.keys(transformed)) {
+      if (
+        imageFields.includes(key) &&
+        typeof transformed[key] === 'string' &&
+        !transformed[key].startsWith('http')
+      ) {
+        transformed[key] = `${this.baseUrl}/${transformed[key]}`;
+      } else if (typeof transformed[key] === 'object') {
+        transformed[key] = this.transformUrls(transformed[key]);
+      }
+    }
+
+    return transformed;
+  }
+
+  return data;
+}
 }
