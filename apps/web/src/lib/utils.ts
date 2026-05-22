@@ -12,12 +12,18 @@ export function formatPrice(price: number, currency: string = 'USD') {
   }).format(price);
 }
 
-export function formatDate(date: string | Date) {
+export function formatDate(date: string | Date | undefined | null): string {
+  if (!date) return '';
+
+  const parsed = new Date(date);
+
+  if (isNaN(parsed.getTime())) return '';
+
   return new Intl.DateTimeFormat('en-US', {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
-  }).format(new Date(date));
+  }).format(parsed);
 }
 
 export function slugify(text: string) {

@@ -53,7 +53,7 @@ export function ProductCard({ product }: ProductCardProps) {
           {product.primaryImage ? (
             <Image
               src={product.primaryImage}
-              alt={product.name}
+              alt={product?.name}
               width={300}
               height={400}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
@@ -94,10 +94,10 @@ export function ProductCard({ product }: ProductCardProps) {
       <div className="p-4 space-y-2">
         <Link href={ROUTES.PRODUCT(product.slug)}>
           <p className="text-xs text-muted-foreground">
-            {product.category.name}
+            {product.category?.name}
           </p>
           <h3 className="font-medium text-sm line-clamp-2 hover:text-gold transition-colors">
-            {product.name}
+            {product?.name}
           </h3>
         </Link>
 
