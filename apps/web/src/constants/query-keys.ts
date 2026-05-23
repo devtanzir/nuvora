@@ -14,6 +14,9 @@ export const QUERY_KEYS = {
   // Cart
   CART: ['cart'] as const,
 
+  // Addresses
+  ADDRESSES: ['addresses'] as const,
+
   // Wishlist
   WISHLIST: (page?: number) =>
     page ? ['wishlist', page] : ['wishlist'],

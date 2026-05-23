@@ -81,7 +81,7 @@ export const orderService = {
     subtotal: number,
   ): Promise<PromoValidateResponse> => {
     const res = await api.post<ApiResponse<PromoValidateResponse>>(
-      '/orders/validate-promo',
+      '/promo-codes/validate',
       { code, subtotal },
     );
     return res.data.data;
