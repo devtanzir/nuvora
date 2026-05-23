@@ -96,14 +96,35 @@ export function useCheckout() {
   };
 
   // Called after Stripe payment success
-  const onPaymentSuccess = (paymentIntentId: string) => {
+const onPaymentSuccess = async (paymentIntentId: string) => {
+  if (!state.selectedAddress?.id) return;
+
+  setIsLoading(true);
+  try {
+    const order = await orderService.createOrder({
+      addressId: state.selectedAddress.id,
+      promoCode: state.promoCode || undefined,
+      stripePaymentId: paymentIntentId,
+    });
+
+    setState((prev) => ({
+      ...prev,
+      orderId: order?.id ?? paymentIntentId,
+      step: 'confirmation',
+    }));
+
+    clearCart();
+  } catch {
     setState((prev) => ({
       ...prev,
       orderId: paymentIntentId,
       step: 'confirmation',
     }));
     clearCart();
-  };
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   return {
     state,
