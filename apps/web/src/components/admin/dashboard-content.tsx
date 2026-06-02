@@ -315,8 +315,8 @@ export function DashboardContent() {
             <div className="space-y-3">
               {lowStock.products.map((product) => (
                 <Link
-                  key={product.id}
-                  href={ROUTES.ADMIN_PRODUCT_EDIT(product.id)}
+                  key={product.slug}
+                  href={ROUTES.ADMIN_PRODUCT_EDIT(product.slug)}
                 >
                   <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors">
                     <div className="h-10 w-10 rounded-lg overflow-hidden bg-muted shrink-0">

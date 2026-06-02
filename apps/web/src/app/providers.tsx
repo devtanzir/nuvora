@@ -8,6 +8,7 @@ import { ThemeProvider } from 'next-themes';
 import { useMe } from '@/hooks/use-auth';
 import { LoginModal } from '@/components/common/login-modal';
 import { CartDrawer } from '@/components/cart/cart-drawer';
+import { SearchDialog } from '@/components/common/search/search-dialog';
 
 // ─── Auth initializer ─────────────────────────────────────────────
 function AuthInitializer() {
@@ -65,6 +66,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
         {children}
         <LoginModal />
         <CartDrawer />
+        <SearchDialog />
         <Toaster
           position="top-right"
           richColors

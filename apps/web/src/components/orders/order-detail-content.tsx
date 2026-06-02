@@ -9,6 +9,7 @@ import {
   ShoppingBag,
   Tag,
   ExternalLink,
+  Star,
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -23,12 +24,18 @@ import { ROUTES } from '@/constants/routes';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import getErrorMessage from '@/lib/error';
+import { useState } from 'react';
+import { ReviewModal } from './review-modal';
 
 const STATUS_COLORS: Record<OrderStatus, string> = {
-  PENDING: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
-  PROCESSING: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-  SHIPPED: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
-  DELIVERED: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+  PENDING:
+    'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
+  PROCESSING:
+    'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+  SHIPPED:
+    'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
+  DELIVERED:
+    'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
   CANCELLED: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
   REFUNDED: 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400',
 };
@@ -46,6 +53,10 @@ interface OrderDetailContentProps {
 
 export function OrderDetailContent({ orderId }: OrderDetailContentProps) {
   const queryClient = useQueryClient();
+  const [reviewItem, setReviewItem] = useState<{
+    productId: string;
+    productName: string;
+  } | null>(null);
 
   const { data: order, isLoading } = useQuery({
     queryKey: QUERY_KEYS.ORDER(orderId),
@@ -103,6 +114,8 @@ export function OrderDetailContent({ orderId }: OrderDetailContentProps) {
   const currentStepIndex = STATUS_STEPS.indexOf(order.status);
   const isCancellable = order.status === 'PENDING';
   const isRefundable = order.status === 'DELIVERED';
+
+  console.log(order, "this is order details");
 
   return (
     <div className="min-h-screen bg-background">
@@ -176,9 +189,7 @@ export function OrderDetailContent({ orderId }: OrderDetailContentProps) {
                       <div
                         className={cn(
                           'h-px flex-1 mb-4 transition-all',
-                          index < currentStepIndex
-                            ? 'bg-gold'
-                            : 'bg-border',
+                          index < currentStepIndex ? 'bg-gold' : 'bg-border',
                         )}
                       />
                     )}
@@ -233,6 +244,22 @@ export function OrderDetailContent({ orderId }: OrderDetailContentProps) {
                       {formatPrice(item.itemTotal)}
                     </p>
                   </div>
+                  {order.status === 'DELIVERED' && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="mt-2 cursor-pointer text-xs"
+                      onClick={() =>
+                        setReviewItem({
+                          productId: item.productId,
+                          productName: item.productName,
+                        })
+                      }
+                    >
+                      <Star className="mr-1 h-3 w-3" />
+                      Write Review
+                    </Button>
+                  )}
                 </div>
               </div>
             ))}
@@ -241,9 +268,7 @@ export function OrderDetailContent({ orderId }: OrderDetailContentProps) {
 
         {/* Order Summary */}
         <div className="p-5 rounded-xl border border-border bg-card space-y-3">
-          <p className="font-medium text-navy dark:text-white">
-            Order Summary
-          </p>
+          <p className="font-medium text-navy dark:text-white">Order Summary</p>
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Subtotal</span>
@@ -328,6 +353,14 @@ export function OrderDetailContent({ orderId }: OrderDetailContentProps) {
           )}
         </div>
       </div>
+      {reviewItem && (
+        <ReviewModal
+          productId={reviewItem.productId}
+          productName={reviewItem.productName}
+          orderId={order.id}
+          onClose={() => setReviewItem(null)}
+        />
+      )}
     </div>
   );
 }

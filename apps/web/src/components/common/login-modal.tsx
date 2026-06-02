@@ -18,7 +18,7 @@ import { Label } from '@/components/ui/label';
 import { PasswordInput } from '@/components/ui/password-input';
 import { GoogleIcon } from '@/components/common/icons/google-icon';
 import { useUIStore } from '@/store/ui.store';
-import { useLogin } from '@/hooks/use-auth';
+import { useModalLogin } from '@/hooks/use-auth';
 import { ROUTES } from '@/constants/routes';
 import { CONFIG } from '@/constants/config';
 
@@ -31,7 +31,7 @@ type LoginForm = z.infer<typeof loginSchema>;
 
 export function LoginModal() {
   const { isLoginModalOpen, closeLoginModal } = useUIStore();
-  const { mutate: login, isPending } = useLogin();
+  const { mutate: login, isPending } = useModalLogin();
 
   const {
     register,

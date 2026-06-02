@@ -18,10 +18,13 @@ import { cn } from '@/lib/utils';
 import { NuvoraLogo } from '../icons/nuvora-logo';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useMounted } from '@/hooks/use-mounted';
+import { NotificationIcon } from './notification-icon';
+import { NotificationDropdown } from './notification-dropdown';
 
 export function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
-  const { isMobileMenuOpen, toggleMobileMenu, closeMobileMenu } = useUIStore();
+  const { isMobileMenuOpen, toggleMobileMenu, closeMobileMenu, openSearch } =
+    useUIStore();
   const { isAuthenticated } = useAuthStore();
   const { isLoading } = useMe();
   const mounted = useMounted();
@@ -56,11 +59,12 @@ export function Navbar() {
 
             {/* Desktop Actions */}
             <div className="flex items-center gap-1">
-              <Button variant="ghost" size="icon">
+              <Button variant="ghost" size="icon" onClick={openSearch}>
                 <Search className="h-5 w-5" />
                 <span className="sr-only">Search</span>
               </Button>
 
+              {isAuthenticated && <NotificationDropdown />}
               {isAuthenticated && <WishlistIcon />}
               {isAuthenticated && <CartIcon />}
 

@@ -10,6 +10,7 @@ import { QUERY_KEYS } from '../constants/query-keys';
 import { ROUTES } from '../constants/routes';
 import { authCookies } from '../lib/auth';
 import getErrorMessage from '../lib/error';
+import { useUIStore } from '@/store/ui.store';
 
 // ─── useMe ───────────────────────────────────────────────────────
 export function useMe() {
@@ -39,7 +40,27 @@ export function useMe() {
   return query;
 }
 
-// ─── useLogin ────────────────────────────────────────────────────
+// ─── Modal Login ───────────────────────────────────────────────────────
+export function useModalLogin() {
+  const { setAuth } = useAuthStore();
+  const { closeLoginModal } = useUIStore();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: authService.login,
+    onSuccess: (data) => {
+      setAuth(data.user, data.accessToken);
+      queryClient.setQueryData(QUERY_KEYS.ME, data.user);
+      closeLoginModal();
+      toast.success('Welcome back!');
+    },
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error, 'Login failed'));
+    },
+  });
+}
+
+// ─── Page Login ───────────────────────────────────────────────────────
 export function useLogin() {
   const router = useRouter();
   const { setAuth } = useAuthStore();

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
   Heart,
@@ -31,6 +31,7 @@ import { formatPrice, getDiscountPercent } from '@/lib/utils';
 import { ROUTES } from '@/constants/routes';
 import { ProductVariant } from '@/types/product.types';
 import { toast } from 'sonner';
+import { useRecentlyViewed } from '@/hooks/use-recently-viewed';
 
 interface ProductDetailContentProps {
   slug: string;
@@ -46,6 +47,14 @@ export function ProductDetailContent({ slug }: ProductDetailContentProps) {
   const { mutate: addToWishlist, isPending: isAddingToWishlist } = useAddToWishlist();
   const { isAuthenticated } = useAuthStore();
   const { openLoginModal } = useUIStore();
+
+  const { addProduct } = useRecentlyViewed();
+
+useEffect(() => {
+  if (product) {
+    addProduct(product);
+  }
+}, [product]);
 
   const handleAddToCart = () => {
     if (!isAuthenticated) {

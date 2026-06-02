@@ -55,6 +55,16 @@ export class ProductsController {
   // Admin Routes
   // ============================================================
 
+  @Get('admin/all')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(Role.ADMIN)
+@ApiBearerAuth('JWT-auth')
+@ApiOperation({ summary: 'Get all products including inactive - Admin only' })
+async adminFindAll(@Query() query: ProductQueryDto) {
+  const data = await this.productsService.adminFindAll(query);
+  return { message: null, data };
+}
+
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)

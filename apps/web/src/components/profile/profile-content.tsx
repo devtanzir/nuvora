@@ -547,7 +547,7 @@ export function ProfileContent() {
                       key={notification.id}
                       className={cn(
                         'p-4 rounded-xl border transition-all',
-                        !notification.read
+                        !notification.isRead
                           ? 'border-gold/30 bg-gold/5'
                           : 'border-border',
                       )}
@@ -561,7 +561,7 @@ export function ProfileContent() {
                             {notification.message}
                           </p>
                         </div>
-                        {!notification.read && (
+                        {!notification.isRead && (
                           <div className="h-2 w-2 rounded-full bg-gold shrink-0 mt-1" />
                         )}
                       </div>

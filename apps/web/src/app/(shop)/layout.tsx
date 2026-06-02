@@ -1,6 +1,7 @@
 import { Suspense } from 'react';
 import { Navbar } from '@/components/common/navbar';
 import { LoginRedirectHandler } from '@/components/common/login-redirect-handler';
+import { Footer } from '@/components/common/footer';
 
 export default function ShopLayout({
   children,
@@ -12,6 +13,7 @@ export default function ShopLayout({
       <LoginRedirectHandler />
       <Navbar />
       <main>{children}</main>
+      <Footer />
     </Suspense>
   );
 }
