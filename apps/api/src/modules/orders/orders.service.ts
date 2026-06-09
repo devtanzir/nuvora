@@ -133,16 +133,19 @@ export class OrdersService {
     const totalCents = Math.max(0, subtotalCents - discountCents);
     const idempotencyKey = `cart_${cart.id}_${Date.now()}`;
 
-    const paymentIntent = await this.stripe.paymentIntents.create({
-      amount: totalCents, // Stripe expects amount in cents
-      currency: 'usd',
-      metadata: {
-        userId,
-        addressId: dto.addressId,
-        promoCodeId: promoCodeId ?? '',
+    const paymentIntent = await this.stripe.paymentIntents.create(
+      {
+        amount: totalCents, // Stripe expects amount in cents
+        currency: 'usd',
+        metadata: {
+          userId,
+          addressId: dto.addressId,
+          promoCodeId: promoCodeId ?? '',
+        },
+        automatic_payment_methods: { enabled: true, allow_redirects: 'never' },
       },
-      automatic_payment_methods: { enabled: true, allow_redirects: 'never' },
-    }, { idempotencyKey });
+      { idempotencyKey },
+    );
 
     return {
       clientSecret: paymentIntent.client_secret,
@@ -159,34 +162,35 @@ export class OrdersService {
   // ============================================================
   // Stripe Webhook Handler
   // ============================================================
-async handleWebhook(rawBody: Buffer, signature: string) {
-  let event: Stripe.Event;
-  try {
-    event = this.stripe.webhooks.constructEvent(
-      rawBody,
-      signature,
-      this.configService.getOrThrow('STRIPE_WEBHOOK_SECRET'),
-    );
-  } catch (err) {
-    this.logger.error('Webhook signature verification failed', err);
-    throw new BadRequestException('Invalid webhook signature');
-  }
-
-  if (event.type === 'payment_intent.succeeded') {
-    const paymentIntent = event.data.object as Stripe.PaymentIntent;
+  async handleWebhook(rawBody: Buffer, signature: string) {
+    let event: Stripe.Event;
     try {
-      await this.createOrderFromPayment(paymentIntent);
-      this.logger.log(`Order created for payment ${paymentIntent.id}`);
-    } catch (error: unknown) {
-      this.logger.error('createOrderFromPayment failed', error);
-      throw new BadRequestException(
-        'Order creation failed: ' + (error as Error).message || 'unknown error',
+      event = this.stripe.webhooks.constructEvent(
+        rawBody,
+        signature,
+        this.configService.getOrThrow('STRIPE_WEBHOOK_SECRET'),
       );
+    } catch (err) {
+      this.logger.error('Webhook signature verification failed', err);
+      throw new BadRequestException('Invalid webhook signature');
     }
-  }
 
-  return { received: true };
-}
+    if (event.type === 'payment_intent.succeeded') {
+      const paymentIntent = event.data.object as Stripe.PaymentIntent;
+      try {
+        await this.createOrderFromPayment(paymentIntent);
+        this.logger.log(`Order created for payment ${paymentIntent.id}`);
+      } catch (error: unknown) {
+        this.logger.error('createOrderFromPayment failed', error);
+        throw new BadRequestException(
+          'Order creation failed: ' + (error as Error).message ||
+            'unknown error',
+        );
+      }
+    }
+
+    return { received: true };
+  }
 
   // ============================================================
   // Create Order from Successful Payment (Core)
@@ -331,6 +335,19 @@ async handleWebhook(rawBody: Buffer, signature: string) {
         }
       }
 
+      // Sync product totalStock
+      const productIds = [...new Set(cart.items.map((item) => item.productId))];
+      for (const pid of productIds) {
+        const total = await tx.productVariant.aggregate({
+          where: { productId: pid },
+          _sum: { stock: true },
+        });
+        await tx.product.update({
+          where: { id: pid },
+          data: { totalStock: total._sum.stock ?? 0 },
+        });
+      }
+
       // Clear cart
       await tx.cartItem.deleteMany({ where: { cartId: cart.id } });
 
@@ -351,41 +368,41 @@ async handleWebhook(rawBody: Buffer, signature: string) {
     }
 
     try {
-  const user = await this.prisma.user.findUnique({
-    where: { id: userId },
-    select: { email: true, name: true },
-  });
-  if (user) {
-    const itemsForEmail = cart.items.map((item) => ({
-      productName: item.product.name,
-      quantity: item.quantity,
-      price: ((item.variant?.price ?? item.product.price) / 100).toFixed(2),
-    }));
-    await this.mailService.sendOrderConfirmationEmail(
-      user.email,
-      user.name,
-      order.orderNumber!,
-      itemsForEmail,
-      order.total,
-    );
-  }
-} catch (err) {
-  this.logger.error('Failed to send order confirmation email', err);
-}
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { email: true, name: true },
+      });
+      if (user) {
+        const itemsForEmail = cart.items.map((item) => ({
+          productName: item.product.name,
+          quantity: item.quantity,
+          price: ((item.variant?.price ?? item.product.price) / 100).toFixed(2),
+        }));
+        await this.mailService.sendOrderConfirmationEmail(
+          user.email,
+          user.name,
+          order.orderNumber!,
+          itemsForEmail,
+          order.total,
+        );
+      }
+    } catch (err) {
+      this.logger.error('Failed to send order confirmation email', err);
+    }
 
-// Create in-app notification
-try {
-  await this.prisma.notification.create({
-    data: {
-      userId,
-      type: 'ORDER_PLACED',
-      title: 'Order Placed',
-      body: `Your order ${order.orderNumber} has been placed successfully.`,
-    },
-  });
-} catch (err) {
-  this.logger.error('Failed to create notification', err);
-}
+    // Create in-app notification
+    try {
+      await this.prisma.notification.create({
+        data: {
+          userId,
+          type: 'ORDER_PLACED',
+          title: 'Order Placed',
+          body: `Your order ${order.orderNumber} has been placed successfully.`,
+        },
+      });
+    } catch (err) {
+      this.logger.error('Failed to create notification', err);
+    }
 
     return order;
   }
@@ -393,31 +410,31 @@ try {
   // ============================================================
   // Manual Order Creation (fallback)
   // ============================================================
-async createOrder(userId: string, dto: CreateOrderDto) {
-  // Prevent duplicate
-  const existing = await this.prisma.order.findUnique({
-    where: { stripePaymentId: dto.stripePaymentId },
-  });
-  if (existing) return existing;
+  async createOrder(userId: string, dto: CreateOrderDto) {
+    // Prevent duplicate
+    const existing = await this.prisma.order.findUnique({
+      where: { stripePaymentId: dto.stripePaymentId },
+    });
+    if (existing) return existing;
 
-  let paymentIntent: Stripe.PaymentIntent;
-  try {
-    paymentIntent = await this.stripe.paymentIntents.retrieve(
-      dto.stripePaymentId,
-    );
-  } catch (error) {
-    this.logger.error('Failed to retrieve payment intent', error);
-    throw new BadRequestException(
-      'Invalid payment ID or could not retrieve payment',
-    );
+    let paymentIntent: Stripe.PaymentIntent;
+    try {
+      paymentIntent = await this.stripe.paymentIntents.retrieve(
+        dto.stripePaymentId,
+      );
+    } catch (error) {
+      this.logger.error('Failed to retrieve payment intent', error);
+      throw new BadRequestException(
+        'Invalid payment ID or could not retrieve payment',
+      );
+    }
+
+    if (paymentIntent.status !== 'succeeded') {
+      throw new BadRequestException('Payment not completed');
+    }
+
+    return this.createOrderFromPayment(paymentIntent);
   }
-
-  if (paymentIntent.status !== 'succeeded') {
-    throw new BadRequestException('Payment not completed');
-  }
-
-  return this.createOrderFromPayment(paymentIntent);
-}
 
   // ============================================================
   // Get Orders (User)
@@ -579,6 +596,21 @@ async createOrder(userId: string, dto: CreateOrderDto) {
           });
         }
       }
+
+      // Sync product totalStock
+      const productIds = [
+        ...new Set(order.items.map((item) => item.productId)),
+      ];
+      for (const pid of productIds) {
+        const total = await tx.productVariant.aggregate({
+          where: { productId: pid },
+          _sum: { stock: true },
+        });
+        await tx.product.update({
+          where: { id: pid },
+          data: { totalStock: total._sum.stock ?? 0 },
+        });
+      }
     });
 
     return { message: 'Order cancelled successfully' };
@@ -714,17 +746,17 @@ async createOrder(userId: string, dto: CreateOrderDto) {
       );
     }
     try {
-  await this.prisma.notification.create({
-    data: {
-      userId: order.userId,
-      type: 'ORDER_STATUS_UPDATE',
-      title: `Order ${dto.status}`,
-      body: `Your order ${order.id} status changed to ${dto.status}.`,
-    },
-  });
-} catch (err) {
-  this.logger.error('Failed to create status notification', err);
-}
+      await this.prisma.notification.create({
+        data: {
+          userId: order.userId,
+          type: 'ORDER_STATUS_UPDATE',
+          title: `Order ${dto.status}`,
+          body: `Your order ${order.id} status changed to ${dto.status}.`,
+        },
+      });
+    } catch (err) {
+      this.logger.error('Failed to create status notification', err);
+    }
 
     const updated = await this.prisma.order.update({
       where: { id: orderId },
@@ -748,106 +780,121 @@ async createOrder(userId: string, dto: CreateOrderDto) {
   // ============================================================
   // Admin: Process Refund
   // ============================================================
- async processRefund(orderId: string, dto: ProcessRefundDto) {
-  // Fetch order with items and refund request
-  const order = await this.prisma.order.findUnique({
-    where: { id: orderId },
-    include: {
-      refundRequest: true,
-      items: {
-        include: {
-          variant: true,   // variant needed to update stock
+  async processRefund(orderId: string, dto: ProcessRefundDto) {
+    // Fetch order with items and refund request
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      include: {
+        refundRequest: true,
+        items: {
+          include: {
+            variant: true, // variant needed to update stock
+          },
         },
       },
-    },
-  });
-
-  if (!order) throw new NotFoundException('Order not found');
-  if (!order.refundRequest)
-    throw new NotFoundException('Refund request not found');
-
-  // If admin rejects
-  if (dto.action === 'REJECT') {
-    await this.prisma.refundRequest.update({
-      where: { orderId },
-      data: { status: 'REJECTED' },
     });
-    return {
-      refundId: order.refundRequest.id,
-      status: 'REJECTED',
-      stripeRefundId: null,
-    };
-  }
 
-  // ========== APPROVE ==========
-  if (!order.stripePaymentId) {
-    throw new BadRequestException('No Stripe payment to refund');
-  }
+    if (!order) throw new NotFoundException('Order not found');
+    if (!order.refundRequest)
+      throw new NotFoundException('Refund request not found');
 
-  // Execute restock (if requested) and refund inside a transaction
-  const result = await this.prisma.$transaction(async (tx) => {
-    // 1. Stock restock if requested
-    if (dto.restock) {
-      // Determine which items to restock (specific or all)
-      const itemsToRestock = dto.restockItems?.length
-        ? order.items.filter((item) => dto.restockItems!.includes(item.id))
-        : order.items;
+    // If admin rejects
+    if (dto.action === 'REJECT') {
+      await this.prisma.refundRequest.update({
+        where: { orderId },
+        data: { status: 'REJECTED' },
+      });
+      return {
+        refundId: order.refundRequest.id,
+        status: 'REJECTED',
+        stripeRefundId: null,
+      };
+    }
 
-      for (const item of itemsToRestock) {
-        if (item.variantId && item.variant) {
-          // Fetch current stock to compute before/after
-          const variantBefore = await tx.productVariant.findUnique({
-            where: { id: item.variantId },
-            select: { stock: true },
+    // ========== APPROVE ==========
+    if (!order.stripePaymentId) {
+      throw new BadRequestException('No Stripe payment to refund');
+    }
+
+    // Execute restock (if requested) and refund inside a transaction
+    const result = await this.prisma.$transaction(async (tx) => {
+      // 1. Stock restock if requested
+      if (dto.restock) {
+        // Determine which items to restock (specific or all)
+        const itemsToRestock = dto.restockItems?.length
+          ? order.items.filter((item) => dto.restockItems!.includes(item.id))
+          : order.items;
+
+        for (const item of itemsToRestock) {
+          if (item.variantId && item.variant) {
+            // Fetch current stock to compute before/after
+            const variantBefore = await tx.productVariant.findUnique({
+              where: { id: item.variantId },
+              select: { stock: true },
+            });
+            const updatedVariant = await tx.productVariant.update({
+              where: { id: item.variantId },
+              data: { stock: { increment: item.quantity } },
+            });
+            await tx.stockLog.create({
+              data: {
+                productId: item.productId,
+                variantId: item.variantId,
+                change: item.quantity,
+                reason: 'Refund restock',
+                stockBefore: variantBefore!.stock,
+                stockAfter: updatedVariant.stock,
+                orderId,
+              },
+            });
+          }
+        }
+
+        // Sync product totalStock after restock
+        const productIds = [
+          ...new Set(itemsToRestock.map((item) => item.productId)),
+        ];
+        for (const pid of productIds) {
+          const total = await tx.productVariant.aggregate({
+            where: { productId: pid },
+            _sum: { stock: true },
           });
-          const updatedVariant = await tx.productVariant.update({
-            where: { id: item.variantId },
-            data: { stock: { increment: item.quantity } },
-          });
-          await tx.stockLog.create({
-            data: {
-              productId: item.productId,
-              variantId: item.variantId,
-              change: item.quantity,
-              reason: 'Refund restock',
-              stockBefore: variantBefore!.stock,
-              stockAfter: updatedVariant.stock,
-              orderId,
-            },
+          await tx.product.update({
+            where: { id: pid },
+            data: { totalStock: total._sum.stock ?? 0 },
           });
         }
       }
-    }
 
-    // 2. Process Stripe refund
-    const refund = await this.stripe.refunds.create({
-      payment_intent: order.stripePaymentId!,
+      // 2. Process Stripe refund
+      const refund = await this.stripe.refunds.create({
+        payment_intent: order.stripePaymentId!,
+      });
+
+      // 3. Update refund request and order status
+      await tx.refundRequest.update({
+        where: { orderId },
+        data: { status: 'APPROVED', stripeRefundId: refund.id },
+      });
+
+      await tx.order.update({
+        where: { id: orderId },
+        data: { status: OrderStatus.REFUNDED },
+      });
+
+      return {
+        refundId: order.refundRequest!.id,
+        status: 'APPROVED',
+        stripeRefundId: refund.id,
+      };
     });
 
-    // 3. Update refund request and order status
-    await tx.refundRequest.update({
-      where: { orderId },
-      data: { status: 'APPROVED', stripeRefundId: refund.id },
-    });
+    return result;
+  }
 
-    await tx.order.update({
-      where: { id: orderId },
-      data: { status: OrderStatus.REFUNDED },
-    });
-
-    return {
-      refundId: order.refundRequest!.id,
-      status: 'APPROVED',
-      stripeRefundId: refund.id,
-    };
-  });
-
-  return result;
-}
   // ============================================================
   // Cron Job: Cancel Expired Pending Orders
   // ============================================================
-
   async cancelExpiredPendingOrders() {
     const expirationMinutes = 30;
     const cutoff = new Date(Date.now() - expirationMinutes * 60 * 1000);
@@ -882,24 +929,39 @@ async createOrder(userId: string, dto: CreateOrderDto) {
             });
           }
         }
+
+        // Sync product totalStock
+        const productIds = [
+          ...new Set(order.items.map((item) => item.productId)),
+        ];
+        for (const pid of productIds) {
+          const total = await tx.productVariant.aggregate({
+            where: { productId: pid },
+            _sum: { stock: true },
+          });
+          await tx.product.update({
+            where: { id: pid },
+            data: { totalStock: total._sum.stock ?? 0 },
+          });
+        }
       });
     }
   }
 
   async generateInvoice(userId: string, orderId: string): Promise<Buffer> {
-  const order = await this.prisma.order.findUnique({
-    where: { id: orderId },
-    include: {
-      items: { include: { product: true, variant: true } },
-      address: true,
-      promoCode: true,
-    },
-  });
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      include: {
+        items: { include: { product: true, variant: true } },
+        address: true,
+        promoCode: true,
+      },
+    });
 
-  if (!order || order.userId !== userId) {
-    throw new ForbiddenException('Not your order');
+    if (!order || order.userId !== userId) {
+      throw new ForbiddenException('Not your order');
+    }
+
+    return this.invoiceService.generateInvoice(order);
   }
-
-  return this.invoiceService.generateInvoice(order);
-}
 }
