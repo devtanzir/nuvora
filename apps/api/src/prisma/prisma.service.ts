@@ -1,19 +1,15 @@
-import { Injectable, OnModuleDestroy, OnModuleInit, Logger } from '@nestjs/common';
+import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
-import { PrismaMariaDb } from "@prisma/adapter-mariadb";
+import { PrismaPg } from '@prisma/adapter-pg';
 
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(PrismaService.name);
 
   constructor() {
-    const adapter = new PrismaMariaDb({
-      host: process.env.DATABASE_HOST,
-      port: parseInt(process.env.DATABASE_PORT!),
-      user: process.env.DATABASE_USER,
-      password: process.env.DATABASE_PASSWORD,
-      database: process.env.DATABASE_NAME,
-      connectionLimit: parseInt(process.env.DATABASE_CONNECTION_LIMIT!),
+
+    const adapter = new PrismaPg({
+      connectionString: process.env.DATABASE_URL,
     });
     super({
       adapter,
@@ -24,18 +20,19 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
   async onModuleInit() {
     try {
       await this.$connect();
-      this.logger.log('SUCCESSFULLY || CONNECTED || MYSQL');
+      this.logger.log('POSTGRESQL || CONNECTED || SUCCESS');
     } catch (error) {
-      this.logger.error('FAILED || CONNECTING || MYSQL', error);
+      this.logger.error('POSTGRESQL || FAILED TO CONNECT || ERROR', error);
+      throw error;
     }
   }
 
   async onModuleDestroy() {
     try {
       await this.$disconnect();
-      this.logger.log('SUCCESSFULLY || DISCONNECTED || MYSQL');
+      this.logger.log('POSTGRESQL || DISCONNECTED || SUCCESS');
     } catch (error) {
-      this.logger.error('FAILED || DISCONNECTING || MYSQL', error);
+      this.logger.error('POSTGRESQL || FAILED TO DISCONNECT || ERROR', error);
     }
   }
 }

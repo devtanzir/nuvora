@@ -25,6 +25,10 @@ export class AuthService {
     private readonly mailService: MailService,
   ) {}
 
+  private hashToken(token: string): string {
+    return crypto.createHash('sha256').update(token).digest('hex');
+  }
+
   // ============================================================
   // Helper - Token Generate
   // ============================================================
@@ -145,14 +149,17 @@ export class AuthService {
       throw new ForbiddenException('Your account has been deactivated');
     }
 
-    const { accessToken, refreshToken } = this.generateTokens(user.id, user.role);
+    const { accessToken, refreshToken } = this.generateTokens(
+      user.id,
+      user.role,
+    );
 
     // Refresh token will save in Database
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
     await this.prisma.refreshToken.create({
       data: {
         userId: user.id,
-        token: refreshToken,
+        token: this.hashToken(refreshToken),
         expiresAt,
       },
     });
@@ -195,8 +202,9 @@ export class AuthService {
       throw new UnauthorizedException('Invalid or expired refresh token');
     }
 
+    const hashedToken = this.hashToken(refreshToken);
     const record = await this.prisma.refreshToken.findUnique({
-      where: { token: refreshToken },
+      where: { token: hashedToken },
     });
 
     if (!record || record.expiresAt < new Date()) {
@@ -206,21 +214,21 @@ export class AuthService {
     const user = await this.prisma.user.findUnique({
       where: { id: payload.sub },
     });
-
     if (!user) {
       throw new UnauthorizedException('Invalid or expired refresh token');
     }
 
-    // Old token delete, new token create - rotation
-    await this.prisma.refreshToken.delete({ where: { token: refreshToken } });
+    await this.prisma.refreshToken.delete({ where: { token: hashedToken } });
 
-    const { accessToken, refreshToken: newRefreshToken } = this.generateTokens(user.id, user.role);
-
+    const { accessToken, refreshToken: newRefreshToken } = this.generateTokens(
+      user.id,
+      user.role,
+    );
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
     await this.prisma.refreshToken.create({
       data: {
         userId: user.id,
-        token: newRefreshToken,
+        token: this.hashToken(newRefreshToken),
         expiresAt,
       },
     });
@@ -241,11 +249,11 @@ export class AuthService {
 
   async logout(refreshToken: string, res: any) {
     if (refreshToken) {
+      const hashed = this.hashToken(refreshToken);
       await this.prisma.refreshToken.deleteMany({
-        where: { token: refreshToken },
+        where: { token: hashed },
       });
     }
-
     res.clearCookie('refreshToken');
     return { message: 'Logged out successfully' };
   }
@@ -294,23 +302,20 @@ export class AuthService {
       where: { token: dto.token },
     });
 
-    if (!record) {
+    if (!record) throw new BadRequestException('Invalid or expired token');
+    if (record.used) throw new BadRequestException('Token already used');
+    if (record.expiresAt < new Date())
       throw new BadRequestException('Invalid or expired token');
-    }
-
-    if (record.used) {
-      throw new BadRequestException('Token already used');
-    }
-
-    if (record.expiresAt < new Date()) {
-      throw new BadRequestException('Invalid or expired token');
-    }
 
     const hashedPassword = await bcrypt.hash(dto.password, 10);
 
     await this.prisma.user.update({
       where: { id: record.userId },
       data: { password: hashedPassword },
+    });
+
+    await this.prisma.refreshToken.deleteMany({
+      where: { userId: record.userId },
     });
 
     await this.prisma.passwordResetToken.update({
@@ -350,49 +355,80 @@ export class AuthService {
   // Google OAuth
   // ============================================================
 
-  async googleLogin(googleUser: any, res: any) {
-    let user = await this.prisma.user.findUnique({
-      where: { email: googleUser.email },
-    });
+async googleLogin(googleUser: any, res: any) {
+  let user = await this.prisma.user.findUnique({
+    where: { email: googleUser.email },
+  });
 
-    if (!user) {
-      user = await this.prisma.user.create({
-        data: {
-          name: googleUser.name,
-          email: googleUser.email,
-          avatar: googleUser.avatar,
-          googleId: googleUser.googleId,
-          emailVerified: true,
-        },
-      });
-    } else if (!user.googleId) {
-      await this.prisma.user.update({
-        where: { id: user.id },
-        data: { googleId: googleUser.googleId },
-      });
-    }
-
-    const { accessToken, refreshToken } = this.generateTokens(user.id, user.role);
-
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-    await this.prisma.refreshToken.create({
+  if (!user) {
+    user = await this.prisma.user.create({
       data: {
-        userId: user.id,
-        token: refreshToken,
-        expiresAt,
+        name: googleUser.name,
+        email: googleUser.email,
+        avatar: googleUser.avatar,
+        googleId: googleUser.googleId,
+        emailVerified: true,
       },
     });
-
-    res.cookie('refreshToken', refreshToken, {
-      httpOnly: true,
-      secure: this.configService.get('NODE_ENV') === 'production',
-      sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
+  } else if (!user.googleId) {
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { googleId: googleUser.googleId },
     });
-
-    // Redirect to client with access token
-    res.redirect(
-      `${this.configService.get('CLIENT_URL')}/auth/callback?token=${accessToken}`,
-    );
   }
+
+  const { accessToken, refreshToken } = this.generateTokens(user.id, user.role);
+
+  // Save hashed refresh token in DB
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  await this.prisma.refreshToken.create({
+    data: {
+      userId: user.id,
+      token: this.hashToken(refreshToken),
+      expiresAt,
+    },
+  });
+
+  // Set refresh token cookie
+  res.cookie('refreshToken', refreshToken, {
+    httpOnly: true,
+    secure: this.configService.get('NODE_ENV') === 'production',
+    sameSite: 'strict',
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  });
+
+  // Generate single-use code for access token exchange
+  const oauthCode = crypto.randomBytes(32).toString('hex');
+  const codeExpiresAt = new Date(Date.now() + 60 * 1000); // 1 minute
+
+  await this.prisma.oAuthCode.create({
+    data: {
+      code: oauthCode,
+      accessToken,
+      expiresAt: codeExpiresAt,
+    },
+  });
+
+  // Redirect to frontend with only the code
+  res.redirect(
+    `${this.configService.get('CLIENT_URL')}/auth/callback?code=${oauthCode}`,
+  );
+}
+async exchangeOAuthCode(code: string) {
+  const record = await this.prisma.oAuthCode.findUnique({
+    where: { code },
+  });
+
+  if (!record || record.used || record.expiresAt < new Date()) {
+    throw new BadRequestException('Invalid or expired code');
+  }
+
+  // Mark as used (or delete)
+  await this.prisma.oAuthCode.update({
+    where: { id: record.id },
+    data: { used: true },
+  });
+
+  return { accessToken: record.accessToken };
+}
 }

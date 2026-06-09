@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <h2>Hi {{name}},</h2>
+  <p>Thank you for your order! Your order <strong>{{orderNumber}}</strong> has been placed.</p>
+  <table style="width:100%; border-collapse:collapse; margin-top:10px;">
+    <tr style="background:#f0f0f0;">
+      <th style="text-align:left; padding:8px;">Item</th>
+      <th style="text-align:center; padding:8px;">Qty</th>
+      <th style="text-align:right; padding:8px;">Price</th>
+    </tr>
+    {{#each items}}
+    <tr>
+      <td style="padding:8px;">{{productName}}</td>
+      <td style="text-align:center; padding:8px;">{{quantity}}</td>
+      <td style="text-align:right; padding:8px;">${{price}}</td>
+    </tr>
+    {{/each}}
+  </table>
+  <p style="text-align:right; font-weight:bold;">Total: ${{total}}</p>
+  <p>We'll notify you when your order ships.</p>
+</body>
+</html>

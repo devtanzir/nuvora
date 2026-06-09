@@ -25,6 +25,7 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { JwtRefreshGuard } from './guards/jwt-refresh.guard';
 import { GoogleAuthGuard } from './guards/google-auth.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
+import { Throttle } from '@nestjs/throttler';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -36,6 +37,7 @@ export class AuthController {
   // ============================================================
 
   @Post('register')
+  @Throttle({ default: { limit: 3, ttl: 60000 } })
   @ApiOperation({ summary: 'User registration' })
   async register(@Body() dto: RegisterDto) {
     const data = await this.authService.register(dto);
@@ -61,6 +63,7 @@ export class AuthController {
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 5, ttl: 900000 } })
   @ApiOperation({ summary: 'User login' })
   async login(
     @Body() dto: LoginDto,
@@ -76,6 +79,7 @@ export class AuthController {
 
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @UseGuards(JwtRefreshGuard)
   @ApiOperation({ summary: 'Refresh access token' })
   async refresh(
@@ -110,6 +114,7 @@ export class AuthController {
 
   @Post('forgot-password')
   @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 3, ttl: 60000 } })
   @ApiOperation({ summary: 'Send password reset link' })
   async forgotPassword(@Body() dto: ForgotPasswordDto) {
     return this.authService.forgotPassword(dto);
@@ -157,4 +162,12 @@ export class AuthController {
   ) {
     return this.authService.googleLogin(req.user, res);
   }
+
+  @Post('exchange-oauth-code')
+@HttpCode(HttpStatus.OK)
+@ApiOperation({ summary: 'Exchange single-use code for access token' })
+async exchangeOAuthCode(@Body('code') code: string) {
+  const data = await this.authService.exchangeOAuthCode(code);
+  return { data };
+}
 }

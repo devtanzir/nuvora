@@ -25,7 +25,7 @@ export class UploadService {
       throw new BadRequestException('Only JPEG, PNG, and WebP images are allowed');
     }
 
-    const maxSize = 5 * 1024 * 1024; // 5MB
+    const maxSize = 10 * 1024 * 1024; // 10MB
     if (file.size > maxSize) {
       throw new BadRequestException('File size must be less than 5MB');
     }

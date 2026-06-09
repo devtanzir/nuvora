@@ -19,6 +19,9 @@ import {
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { UploadService } from './upload.service';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Role } from '@prisma/client';
+import { Roles } from '../auth/decorators/roles.decorator';
 
 @ApiTags('Upload')
 @ApiBearerAuth('JWT-auth')
@@ -85,6 +88,9 @@ export class UploadController {
   // ============================================================
 
   @Delete('image/:publicId')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Delete image' })
   async deleteImage(@Param('publicId') publicId: string) {
     return this.uploadService.deleteImage(publicId);

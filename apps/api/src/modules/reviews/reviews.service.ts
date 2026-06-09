@@ -12,6 +12,25 @@ import { UpdateReviewDto } from './dto/update-review.dto';
 export class ReviewsService {
   constructor(private readonly prisma: PrismaService) {}
 
+  private async updateProductRating(productId: string) {
+    const stats = await this.prisma.review.aggregate({
+      where: { productId },
+      _avg: { rating: true },
+      _count: { rating: true },
+    });
+
+    const avg = stats._avg.rating ?? 0;
+    const count = stats._count.rating;
+
+    await this.prisma.product.update({
+      where: { id: productId },
+      data: {
+        avgRating: Math.round(avg * 10) / 10,
+        reviewCount: count,
+      },
+    });
+  }
+
   // ============================================================
   // Get Reviews Summary
   // ============================================================
@@ -157,7 +176,7 @@ export class ReviewsService {
         createdAt: true,
       },
     });
-
+    await this.updateProductRating(productId);
     return review;
   }
 
@@ -165,14 +184,21 @@ export class ReviewsService {
   // Update Review
   // ============================================================
 
-  async updateReview(userId: string, productId: string, reviewId: string, dto: UpdateReviewDto) {
+  async updateReview(
+    userId: string,
+    productId: string,
+    reviewId: string,
+    dto: UpdateReviewDto,
+  ) {
     const review = await this.prisma.review.findUnique({
       where: { id: reviewId },
     });
 
     if (!review) throw new NotFoundException('Review not found');
-    if (review.productId !== productId) throw new NotFoundException('Review not found');
-    if (review.userId !== userId) throw new ForbiddenException('Not your review');
+    if (review.productId !== productId)
+      throw new NotFoundException('Review not found');
+    if (review.userId !== userId)
+      throw new ForbiddenException('Not your review');
 
     const updated = await this.prisma.review.update({
       where: { id: reviewId },
@@ -184,6 +210,7 @@ export class ReviewsService {
         updatedAt: true,
       },
     });
+    await this.updateProductRating(productId);
 
     return updated;
   }
@@ -198,10 +225,13 @@ export class ReviewsService {
     });
 
     if (!review) throw new NotFoundException('Review not found');
-    if (review.productId !== productId) throw new NotFoundException('Review not found');
-    if (review.userId !== userId) throw new ForbiddenException('Not your review');
+    if (review.productId !== productId)
+      throw new NotFoundException('Review not found');
+    if (review.userId !== userId)
+      throw new ForbiddenException('Not your review');
 
     await this.prisma.review.delete({ where: { id: reviewId } });
+    await this.updateProductRating(productId);
 
     return { message: 'Review deleted successfully' };
   }

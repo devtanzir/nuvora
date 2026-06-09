@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { ThrottlerModule } from '@nestjs/throttler';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { AppController } from './app.controller';
@@ -18,52 +18,44 @@ import { PromoCodesModule } from './modules/promo-codes/promo-codes.module';
 import { OrdersModule } from './modules/orders/orders.module';
 import { BannersModule } from './modules/banners/banners.module';
 import { AdminModule } from './modules/admin/admin.module';
+import { ScheduleModule } from '@nestjs/schedule';
+import { APP_GUARD } from '@nestjs/core/constants';
 
 @Module({
   imports: [
-    // Confirm to load .env file and make env variables globally available
     ConfigModule.forRoot({
       isGlobal: true,
     }),
-
-    // Rate limiting — DDoS protection
     ThrottlerModule.forRoot([
       {
-        ttl: 60000, // 1 minute
-        limit: 100, // max 100 requests per minute
+        ttl: 60000,       // 1 minute
+        limit: 100,       // 100 requests per minute per IP
       },
     ]),
 
     // Database
     PrismaModule,
-
     AuthModule,
-
     MailModule,
-
     UsersModule,
-
     CategoriesModule,
-
     ProductsModule,
-
     CartModule,
-
     WishlistModule,
-
     UploadModule,
-
     ReviewsModule,
-
     PromoCodesModule,
-
     OrdersModule,
-
     BannersModule,
-
     AdminModule,
+    ScheduleModule.forRoot(),
   ],
   controllers: [AppController, UploadController],
-  providers: [AppService],
+  providers: [
+        {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,   // global guard
+    },
+    AppService],
 })
 export class AppModule {}

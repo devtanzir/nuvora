@@ -21,7 +21,7 @@ export class AdminService {
       totalOrdersLast,
       totalUsers,
       totalUsersLast,
-      totalProducts,
+      productGroups,
       pendingOrders,
       refundRequests,
     ] = await Promise.all([
@@ -46,9 +46,10 @@ export class AdminService {
       this.prisma.user.count({
         where: { createdAt: { lt: thisMonth } },
       }),
-      this.prisma.product.findMany({
+      this.prisma.product.groupBy({
+        by: ['isActive'],
         where: { isDeleted: false },
-        select: { isActive: true },
+        _count: true,
       }),
       this.prisma.order.count({ where: { status: 'PENDING' } }),
       this.prisma.refundRequest.count({ where: { status: 'PENDING' } }),
@@ -69,8 +70,10 @@ export class AdminService {
         ? ((totalUsers - totalUsersLast) / totalUsersLast) * 100
         : 0;
 
-    const activeProducts = totalProducts.filter((p) => p.isActive).length;
-    const inactiveProducts = totalProducts.filter((p) => !p.isActive).length;
+    const activeProducts = productGroups.find((g) => g.isActive)?._count ?? 0;
+    const inactiveProducts =
+      productGroups.find((g) => !g.isActive)?._count ?? 0;
+    const totalProducts = activeProducts + inactiveProducts;
 
     return {
       totalRevenue: {
@@ -89,7 +92,7 @@ export class AdminService {
         period: 'vs last month',
       },
       totalProducts: {
-        value: totalProducts.length,
+        value: totalProducts,
         active: activeProducts,
         inactive: inactiveProducts,
       },
@@ -104,63 +107,96 @@ export class AdminService {
 
   async getRevenue(period: string = 'monthly') {
     const now = new Date();
-    let startDate: Date;
     let chart: { label: string; revenue: number; orders: number }[] = [];
 
     if (period === 'monthly') {
-      startDate = new Date(now.getFullYear(), 0, 1);
+      const labels = [
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec',
+      ];
+      const promises: Promise<{
+        label: string;
+        revenue: number;
+        orders: number;
+      }>[] = [];
 
       for (let month = 0; month <= now.getMonth(); month++) {
         const start = new Date(now.getFullYear(), month, 1);
         const end = new Date(now.getFullYear(), month + 1, 1);
 
-        const [revenue, orders] = await Promise.all([
-          this.prisma.order.aggregate({
-            where: {
-              createdAt: { gte: start, lt: end },
-              status: { not: 'CANCELLED' },
-            },
-            _sum: { total: true },
-          }),
-          this.prisma.order.count({
-            where: { createdAt: { gte: start, lt: end } },
-          }),
-        ]);
-
-        const labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        chart.push({
-          label: labels[month],
-          revenue: revenue._sum.total ?? 0,
-          orders,
-        });
+        promises.push(
+          (async () => {
+            const [revenueResult, ordersCount] = await Promise.all([
+              this.prisma.order.aggregate({
+                where: {
+                  createdAt: { gte: start, lt: end },
+                  status: { not: 'CANCELLED' },
+                },
+                _sum: { total: true },
+              }),
+              this.prisma.order.count({
+                where: { createdAt: { gte: start, lt: end } },
+              }),
+            ]);
+            return {
+              label: labels[month],
+              revenue: revenueResult._sum.total ?? 0,
+              orders: ordersCount,
+            };
+          })(),
+        );
       }
+
+      chart = await Promise.all(promises);
     } else if (period === 'weekly') {
-      startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      // Generate labels for the last 7 days
+      const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      const promises: Promise<{
+        label: string;
+        revenue: number;
+        orders: number;
+      }>[] = [];
 
       for (let i = 6; i >= 0; i--) {
-        const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+        const date = new Date(now);
+        date.setDate(date.getDate() - i);
         const start = new Date(date.setHours(0, 0, 0, 0));
         const end = new Date(date.setHours(23, 59, 59, 999));
 
-        const [revenue, orders] = await Promise.all([
-          this.prisma.order.aggregate({
-            where: {
-              createdAt: { gte: start, lte: end },
-              status: { not: 'CANCELLED' },
-            },
-            _sum: { total: true },
-          }),
-          this.prisma.order.count({
-            where: { createdAt: { gte: start, lte: end } },
-          }),
-        ]);
-
-        chart.push({
-          label: start.toLocaleDateString('en-US', { weekday: 'short' }),
-          revenue: revenue._sum.total ?? 0,
-          orders,
-        });
+        promises.push(
+          (async () => {
+            const [revenueResult, ordersCount] = await Promise.all([
+              this.prisma.order.aggregate({
+                where: {
+                  createdAt: { gte: start, lte: end },
+                  status: { not: 'CANCELLED' },
+                },
+                _sum: { total: true },
+              }),
+              this.prisma.order.count({
+                where: { createdAt: { gte: start, lte: end } },
+              }),
+            ]);
+            return {
+              label: dayNames[start.getDay()],
+              revenue: revenueResult._sum.total ?? 0,
+              orders: ordersCount,
+            };
+          })(),
+        );
       }
+
+      chart = await Promise.all(promises);
     }
 
     const totals = chart.reduce(
@@ -198,7 +234,11 @@ export class AdminService {
   // Low Stock
   // ============================================================
 
-  async getLowStock(threshold: number = 10, page: number = 1, limit: number = 20) {
+  async getLowStock(
+    threshold: number = 10,
+    page: number = 1,
+    limit: number = 20,
+  ) {
     const variants = await this.prisma.productVariant.findMany({
       where: { stock: { lte: threshold } },
       include: {
@@ -262,62 +302,69 @@ export class AdminService {
     const now = new Date();
     let startDate: Date | undefined;
 
-    if (period === '30d') startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-    else if (period === '90d') startDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+    if (period === '30d')
+      startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    else if (period === '90d')
+      startDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
 
+    // Aggregate quantity sold per product
     const orderItems = await this.prisma.orderItem.groupBy({
       by: ['productId'],
-      where: startDate ? { order: { createdAt: { gte: startDate } } } : undefined,
+      where: startDate
+        ? { order: { createdAt: { gte: startDate } } }
+        : undefined,
       _sum: { quantity: true },
       orderBy: { _sum: { quantity: 'desc' } },
       take: limit,
     });
 
-    const products = await Promise.all(
-      orderItems.map(async (item) => {
-        const product = await this.prisma.product.findUnique({
-          where: { id: item.productId },
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-            price: true,
-            images: {
-              where: { isPrimary: true },
-              select: { url: true },
-              take: 1,
-            },
-            reviews: { select: { rating: true } },
-          },
-        });
+    const productIds = orderItems.map((item) => item.productId);
 
-        const revenue = (item._sum.quantity ?? 0) * (product?.price ?? 0);
-        const avgRating =
-          product && product.reviews.length > 0
-            ? product.reviews.reduce((sum, r) => sum + r.rating, 0) / product.reviews.length
-            : 0;
+    // Batch fetch product details
+    const products = await this.prisma.product.findMany({
+      where: { id: { in: productIds } },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        price: true,
+        avgRating: true,
+        images: {
+          where: { isPrimary: true },
+          select: { url: true },
+          take: 1,
+        },
+      },
+    });
 
-        return {
-          id: product?.id,
-          name: product?.name,
-          slug: product?.slug,
-          price: product?.price,
-          primaryImage: product?.images[0]?.url ?? null,
-          totalSold: item._sum.quantity ?? 0,
-          revenue,
-          avgRating: Math.round(avgRating * 10) / 10,
-        };
-      }),
-    );
+    const productMap = new Map(products.map((p) => [p.id, p]));
 
-    return products;
+    return orderItems.map((item) => {
+      const product = productMap.get(item.productId);
+      const quantity = item._sum.quantity ?? 0;
+      return {
+        id: product?.id,
+        name: product?.name,
+        slug: product?.slug,
+        price: product?.price,
+        primaryImage: product?.images[0]?.url ?? null,
+        totalSold: quantity,
+        revenue: quantity * (product?.price ?? 0),
+        avgRating: product?.avgRating ?? 0,
+      };
+    });
   }
 
   // ============================================================
   // Get All Users (Admin)
   // ============================================================
 
-  async getUsers(page: number = 1, limit: number = 20, search?: string, isActive?: boolean) {
+  async getUsers(
+    page: number = 1,
+    limit: number = 20,
+    search?: string,
+    isActive?: boolean,
+  ) {
     const where: any = {};
     if (search) {
       where.OR = [
@@ -342,27 +389,45 @@ export class AdminService {
           isActive: true,
           emailVerified: true,
           createdAt: true,
-          orders: {
-            select: { total: true },
-          },
         },
       }),
       this.prisma.user.count({ where }),
     ]);
 
+    // Batch aggregate order stats for these users
+    const userIds = users.map((u) => u.id);
+    const orderStats = await this.prisma.order.groupBy({
+      by: ['userId'],
+      where: { userId: { in: userIds } },
+      _sum: { total: true },
+      _count: true,
+    });
+    const statsMap = new Map(
+      orderStats.map((stat) => [
+        stat.userId,
+        { totalSpent: stat._sum.total ?? 0, totalOrders: stat._count },
+      ]),
+    );
+
     return {
-      users: users.map((user) => ({
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        avatar: user.avatar,
-        role: user.role,
-        isActive: user.isActive,
-        emailVerified: user.emailVerified,
-        totalOrders: user.orders.length,
-        totalSpent: user.orders.reduce((sum, o) => sum + o.total, 0),
-        createdAt: user.createdAt,
-      })),
+      users: users.map((user) => {
+        const stats = statsMap.get(user.id) || {
+          totalSpent: 0,
+          totalOrders: 0,
+        };
+        return {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          avatar: user.avatar,
+          role: user.role,
+          isActive: user.isActive,
+          emailVerified: user.emailVerified,
+          totalOrders: stats.totalOrders,
+          totalSpent: stats.totalSpent,
+          createdAt: user.createdAt,
+        };
+      }),
       meta: {
         total,
         page,
@@ -371,7 +436,6 @@ export class AdminService {
       },
     };
   }
-
   // ============================================================
   // Get User Detail (Admin)
   // ============================================================
@@ -396,7 +460,9 @@ export class AdminService {
     if (!user) throw new Error('User not found');
 
     const totalSpent = user.orders.reduce((sum, o) => sum + o.total, 0);
-    const pendingOrders = user.orders.filter((o) => o.status === 'PENDING').length;
+    const pendingOrders = user.orders.filter(
+      (o) => o.status === 'PENDING',
+    ).length;
 
     return {
       id: user.id,

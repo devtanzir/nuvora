@@ -4,32 +4,48 @@ import {
   ArgumentsHost,
   HttpException,
   HttpStatus,
+  Logger,
 } from '@nestjs/common';
 import { Response } from 'express';
 
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
+  private readonly logger = new Logger(AllExceptionsFilter.name);
+
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
 
-    const status =
-      exception instanceof HttpException
-        ? exception.getStatus()
-        : HttpStatus.INTERNAL_SERVER_ERROR;
+    let status: number;
+    let message: string | string[];
 
-    const message =
-      exception instanceof HttpException
-        ? exception.getResponse()
-        : 'Internal server error';
+    if (exception instanceof HttpException) {
+      status = exception.getStatus();
+      const exceptionResponse = exception.getResponse();
+
+      // Handle validation errors (class-validator)
+      if (typeof exceptionResponse === 'object') {
+        const resp = exceptionResponse as any;
+        // If there's an array of messages, use it directly
+        if (Array.isArray(resp.message)) {
+          message = resp.message;
+        } else {
+          message = resp.message || 'Something went wrong';
+        }
+      } else {
+        message = exceptionResponse as string;
+      }
+    } else {
+      // Unknown error (programming bug) - log full details
+      status = HttpStatus.INTERNAL_SERVER_ERROR;
+      message = 'Internal server error';
+      this.logger.error('Unhandled exception', exception);
+    }
 
     response.status(status).json({
       success: false,
       statusCode: status,
-      message:
-        typeof message === 'string'
-          ? message
-          : (message as any).message || 'Something went wrong',
+      message,
       timestamp: new Date().toISOString(),
     });
   }

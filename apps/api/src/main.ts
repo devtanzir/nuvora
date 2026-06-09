@@ -5,7 +5,6 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
-import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 import { AllExceptionsFilter } from './common/filters/http-exception.filter';
 
@@ -22,11 +21,24 @@ async function bootstrap() {
   app.setGlobalPrefix('api/v1');
 
   // CORS
-  app.enableCors({
-    origin: process.env.CLIENT_URL,
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
-  });
+app.enableCors({
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps, curl, Swagger)
+    if (!origin) return callback(null, true);
+    // Development: allow all (or restrict to your frontend)
+    if (process.env.NODE_ENV === 'production') {
+      if (origin === process.env.CLIENT_URL) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    } else {
+      callback(null, true); // allow all in dev
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+});
 
   // Global validation pipe
   app.useGlobalPipes(
@@ -40,7 +52,6 @@ async function bootstrap() {
   // Global interceptor
   app.useGlobalInterceptors(
     new LoggingInterceptor(),
-    new TransformInterceptor(),
     new ResponseInterceptor(),
   );
 

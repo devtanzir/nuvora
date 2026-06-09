@@ -50,6 +50,10 @@ async findAll(query: ProductQueryDto) {
     if (maxPrice !== undefined) where.price.lte = maxPrice;
   }
 
+  if (rating) {
+    where.avgRating = { gte: rating };
+  }
+
   if (inStock) {
     where.variants = { some: { stock: { gt: 0 } } };
   }
@@ -66,23 +70,21 @@ async findAll(query: ProductQueryDto) {
       orderBy.createdAt = 'desc';
       break;
     case 'rating':
+      orderBy.avgRating = 'desc';
+      break;
     case 'most_reviewed':
-      orderBy.reviews = { _count: 'desc' };
+      orderBy.reviewCount = 'desc';
       break;
     default:
       orderBy.createdAt = 'desc';
   }
 
-  // Fetch more when rating filter is active
-  const fetchLimit = rating ? Math.max(limit * 5, 100) : limit;
-  const fetchSkip = rating ? 0 : (page - 1) * limit;
-
-  const [products, totalCount] = await Promise.all([
+  const [products, total] = await Promise.all([
     this.prisma.product.findMany({
       where,
       orderBy,
-      skip: fetchSkip,
-      take: fetchLimit,
+      skip: (page - 1) * limit,
+      take: limit,
       select: {
         id: true,
         name: true,
@@ -90,60 +92,32 @@ async findAll(query: ProductQueryDto) {
         price: true,
         originalPrice: true,
         isActive: true,
-        category: {
-          select: { id: true, name: true, slug: true },
-        },
-        images: {
-          where: { isPrimary: true },
-          select: { url: true },
-          take: 1,
-        },
-        reviews: {
-          select: { rating: true },
-        },
-        variants: {
-          select: { stock: true },
-        },
+        avgRating: true,
+        reviewCount: true,
+        totalStock: true,
+        category: { select: { id: true, name: true, slug: true } },
+        images: { where: { isPrimary: true }, select: { url: true }, take: 1 },
       },
     }),
     this.prisma.product.count({ where }),
   ]);
 
-  const mappedProducts = products.map((p) => ({
+  const productsData = products.map((p) => ({
     id: p.id,
     name: p.name,
     slug: p.slug,
     price: p.price,
     originalPrice: p.originalPrice,
-    avgRating:
-      p.reviews.length > 0
-        ? Math.round(
-            (p.reviews.reduce((sum, r) => sum + r.rating, 0) /
-              p.reviews.length) *
-              10,
-          ) / 10
-        : 0,
-    reviewCount: p.reviews.length,
-    stock: p.variants.reduce((sum, v) => sum + v.stock, 0),
+    avgRating: p.avgRating ?? 0,
+    reviewCount: p.reviewCount,
+    stock: p.totalStock ?? 0,            // denormalized stock (এখন 0, পরে populate করব)
     isActive: p.isActive,
     category: p.category,
     primaryImage: p.images[0]?.url ?? null,
   }));
 
-  // Application level rating filter
-  const filteredProducts = rating
-    ? mappedProducts.filter((p) => p.avgRating >= rating)
-    : mappedProducts;
-
-  // Manual pagination when rating filter active
-  const paginatedProducts = rating
-    ? filteredProducts.slice((page - 1) * limit, page * limit)
-    : filteredProducts;
-
-  const total = rating ? filteredProducts.length : totalCount;
-
   return {
-    products: paginatedProducts,
+    products: productsData,
     meta: {
       total,
       page,
@@ -152,7 +126,6 @@ async findAll(query: ProductQueryDto) {
     },
   };
 }
-
   // ============================================================
   // Get Single Product
   // ============================================================
@@ -229,116 +202,118 @@ async findAll(query: ProductQueryDto) {
   // ============================================================
 
   async adminFindAll(query: ProductQueryDto) {
-  const { page = 1, limit = 20, search, categorySlug } = query;
+    const { page = 1, limit = 20, search, categorySlug } = query;
 
-  const where: any = {
-    isDeleted: false, // শুধু deleted filter, isActive নেই
-  };
+    const where: any = {
+      isDeleted: false, // শুধু deleted filter, isActive নেই
+    };
 
-  if (search) {
-    where.name = { contains: search };
-  }
+    if (search) {
+      where.name = { contains: search };
+    }
 
-  if (categorySlug) {
-    where.category = { slug: categorySlug };
-  }
+    if (categorySlug) {
+      where.category = { slug: categorySlug };
+    }
 
-  const [products, total] = await Promise.all([
-    this.prisma.product.findMany({
-      where,
-      orderBy: { createdAt: 'desc' },
-      skip: (page - 1) * limit,
-      take: limit,
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        price: true,
-        originalPrice: true,
-        isActive: true,
-        category: {
-          select: { id: true, name: true, slug: true },
+    const [products, total] = await Promise.all([
+      this.prisma.product.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          price: true,
+          originalPrice: true,
+          isActive: true,
+          category: {
+            select: { id: true, name: true, slug: true },
+          },
+          images: {
+            where: { isPrimary: true },
+            select: { url: true },
+            take: 1,
+          },
+          reviews: { select: { rating: true } },
+          variants: { select: { stock: true } },
         },
-        images: {
-          where: { isPrimary: true },
-          select: { url: true },
-          take: 1,
-        },
-        reviews: { select: { rating: true } },
-        variants: { select: { stock: true } },
-      },
-    }),
-    this.prisma.product.count({ where }),
-  ]);
+      }),
+      this.prisma.product.count({ where }),
+    ]);
 
-  return {
-    products: products.map((p) => ({
-      id: p.id,
-      name: p.name,
-      slug: p.slug,
-      price: p.price,
-      originalPrice: p.originalPrice,
-      isActive: p.isActive,
-      avgRating:
-        p.reviews.length > 0
-          ? Math.round(
-              (p.reviews.reduce((sum, r) => sum + r.rating, 0) /
-                p.reviews.length) * 10,
-            ) / 10
-          : 0,
-      reviewCount: p.reviews.length,
-      stock: p.variants.reduce((sum, v) => sum + v.stock, 0),
-      category: p.category,
-      primaryImage: p.images[0]?.url ?? null,
-    })),
-    meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
-  };
-}
+    return {
+      products: products.map((p) => ({
+        id: p.id,
+        name: p.name,
+        slug: p.slug,
+        price: p.price,
+        originalPrice: p.originalPrice,
+        isActive: p.isActive,
+        avgRating:
+          p.reviews.length > 0
+            ? Math.round(
+                (p.reviews.reduce((sum, r) => sum + r.rating, 0) /
+                  p.reviews.length) *
+                  10,
+              ) / 10
+            : 0,
+        reviewCount: p.reviews.length,
+        stock: p.variants.reduce((sum, v) => sum + v.stock, 0),
+        category: p.category,
+        primaryImage: p.images[0]?.url ?? null,
+      })),
+      meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
+    };
+  }
 
   // ============================================================
   // Create Product
   // ============================================================
 
-  async create(dto: CreateProductDto) {
-    const category = await this.prisma.category.findUnique({
-      where: { id: dto.categoryId },
-    });
+async create(dto: CreateProductDto) {
+  const category = await this.prisma.category.findUnique({
+    where: { id: dto.categoryId },
+  });
+  if (!category) throw new BadRequestException('Category not found');
 
-    if (!category) throw new BadRequestException('Category not found');
-
-    if (!dto.images || dto.images.length === 0) {
-      throw new BadRequestException('At least one image required');
-    }
-
-    const slug = dto.name
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/(^-|-$)/g, '');
-
-    const product = await this.prisma.product.create({
-      data: {
-        name: dto.name,
-        slug,
-        description: dto.description,
-        price: dto.price,
-        originalPrice: dto.originalPrice,
-        categoryId: dto.categoryId,
-        images: {
-          create: dto.images,
-        },
-        variants: dto.variants
-          ? { create: dto.variants }
-          : undefined,
-      },
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-      },
-    });
-
-    return product;
+  if (!dto.images || dto.images.length === 0) {
+    throw new BadRequestException('At least one image required');
   }
+
+  // Slug generation with uniqueness
+  let baseSlug = dto.name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '');
+
+  let slug = baseSlug;
+  let count = 0;
+  while (await this.prisma.product.findUnique({ where: { slug } })) {
+    count++;
+    slug = `${baseSlug}-${count}`;
+  }
+
+  const product = await this.prisma.product.create({
+    data: {
+      name: dto.name,
+      slug,
+      description: dto.description,
+      price: dto.price,
+      originalPrice: dto.originalPrice,
+      categoryId: dto.categoryId,
+      images: { create: dto.images },
+      variants: dto.variants && dto.variants.length > 0
+        ? { create: dto.variants }
+        : { create: { name: 'default', value: 'default', stock: 0, price: null } },
+    },
+    select: { id: true, name: true, slug: true },
+  });
+
+  return product;
+}
 
   // ============================================================
   // Update Product
@@ -357,7 +332,9 @@ async findAll(query: ProductQueryDto) {
         ...(dto.name && { name: dto.name }),
         ...(dto.description !== undefined && { description: dto.description }),
         ...(dto.price !== undefined && { price: dto.price }),
-        ...(dto.originalPrice !== undefined && { originalPrice: dto.originalPrice }),
+        ...(dto.originalPrice !== undefined && {
+          originalPrice: dto.originalPrice,
+        }),
         ...(dto.categoryId && { categoryId: dto.categoryId }),
         ...(dto.isActive !== undefined && { isActive: dto.isActive }),
       },
@@ -432,7 +409,11 @@ async findAll(query: ProductQueryDto) {
   // Update Variant
   // ============================================================
 
-  async updateVariant(productId: string, variantId: string, dto: UpdateVariantDto) {
+  async updateVariant(
+    productId: string,
+    variantId: string,
+    dto: UpdateVariantDto,
+  ) {
     const variant = await this.prisma.productVariant.findFirst({
       where: { id: variantId, productId },
     });
@@ -466,7 +447,9 @@ async findAll(query: ProductQueryDto) {
     });
 
     if (cartItems > 0) {
-      throw new BadRequestException('Cannot delete variant with active cart items');
+      throw new BadRequestException(
+        'Cannot delete variant with active cart items',
+      );
     }
 
     await this.prisma.productVariant.delete({ where: { id: variantId } });

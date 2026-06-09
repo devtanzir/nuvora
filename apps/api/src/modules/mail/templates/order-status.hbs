@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<html>
+<body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <h2>Hi {{name}},</h2>
+  <p>Your order <strong>{{orderId}}</strong> status has been updated to <strong>{{status}}</strong>.</p>
+  {{#if trackingNumber}}
+  <p>Tracking number: {{trackingNumber}}</p>
+  {{/if}}
+  <p>Thank you for shopping with Nuvora!</p>
+</body>
+</html>
