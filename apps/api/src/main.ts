@@ -27,7 +27,7 @@ app.enableCors({
     if (!origin) return callback(null, true);
     // Development: allow all (or restrict to your frontend)
     if (process.env.NODE_ENV === 'production') {
-      if (origin === process.env.CLIENT_URL) {
+      if (origin === process.env.CLIENT_URL || origin === process.env.SERVER_URL) {
         callback(null, true);
       } else {
         callback(new Error('Not allowed by CORS'));
