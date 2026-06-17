@@ -7,9 +7,8 @@ services:
       POSTGRES_USER: nuvora_user
       POSTGRES_PASSWORD: nuvora_pass123
       POSTGRES_DB: nuvora_db
-      # POSTGRES_HOST_AUTH_METHOD: trust
     ports:
-      - '5433:5432'
+      - '5431:5432'
     volumes:
       - nuvora_postgres_data:/var/lib/postgresql/data
 

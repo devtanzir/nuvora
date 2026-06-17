@@ -5,6 +5,7 @@ import { Address } from '../types/order.types';
 
 export type UserNotification = {
   id: string;
+  type: string;
   title: string;
   message: string;
   isRead: boolean;

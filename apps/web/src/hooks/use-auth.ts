@@ -15,27 +15,33 @@ import { useUIStore } from '@/store/ui.store';
 // ─── useMe ───────────────────────────────────────────────────────
 export function useMe() {
   const { setAuth, clearAuth } = useAuthStore();
-  const hasToken = !!authCookies.getToken();
 
   const query = useQuery({
     queryKey: QUERY_KEYS.ME,
-    queryFn: authService.getMe,
-    enabled: hasToken,
-    staleTime: 1000 * 60 * 10, // 10 minutes
-    retry: false,
+    queryFn: async () => {
+      const token = authCookies.getToken();
+      if (!token) return null;
+      return authService.getMe();
+    },
+    staleTime: 1000 * 60 * 10,
+    retry: 1,
+    retryDelay: 600,
   });
 
   useEffect(() => {
     if (query.data) {
-      // Token already in cookie, just sync user to store
       const token = authCookies.getToken();
       if (token) setAuth(query.data, token);
     }
 
     if (query.isError) {
-      clearAuth();
+      const status = (query.error as { response?: { status?: number } })
+        ?.response?.status;
+      if (status === 401 || status === 403) {
+        clearAuth();
+      }
     }
-  }, [query.data, query.isError, setAuth, clearAuth]);
+  }, [query.data, query.isError, query.error, setAuth, clearAuth]);
 
   return query;
 }

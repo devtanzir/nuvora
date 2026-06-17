@@ -38,23 +38,43 @@ interface ProductDetailContentProps {
 }
 
 export function ProductDetailContent({ slug }: ProductDetailContentProps) {
-  const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
+  const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(
+    null,
+  );
   const [quantity, setQuantity] = useState(1);
 
   const { data: product, isLoading } = useProduct(slug);
   const { data: reviewSummary } = useReviewSummary(product?.id ?? '');
   const { mutate: addToCart, isPending: isAddingToCart } = useAddToCart();
-  const { mutate: addToWishlist, isPending: isAddingToWishlist } = useAddToWishlist();
+  const { mutate: addToWishlist, isPending: isAddingToWishlist } =
+    useAddToWishlist();
   const { isAuthenticated } = useAuthStore();
   const { openLoginModal } = useUIStore();
 
   const { addProduct } = useRecentlyViewed();
 
-useEffect(() => {
-  if (product) {
-    addProduct(product);
-  }
-}, [product]);
+  useEffect(() => {
+    if (product) {
+      addProduct(product);
+    }
+    if (product && product.variants.length > 0) {
+      // If a variant is already selected and still exists, keep it
+      if (
+        selectedVariant &&
+        product.variants.some((v) => v.id === selectedVariant.id)
+      ) {
+        return;
+      }
+      // Otherwise, select the first in-stock variant
+      const firstInStock = product.variants.find((v) => v.stock > 0);
+      if (firstInStock) {
+        setSelectedVariant(firstInStock);
+      } else {
+        // If all out of stock, you can still select the first one (or leave null)
+        setSelectedVariant(product.variants[0]);
+      }
+    }
+  }, [product]);
 
   const handleAddToCart = () => {
     if (!isAuthenticated) {
@@ -112,8 +132,8 @@ useEffect(() => {
   const currentStock = selectedVariant
     ? selectedVariant.stock
     : product.variants.length > 0
-    ? 0
-    : product.stock;
+      ? 0
+      : product.totalStock;
 
   const currentPrice = selectedVariant?.price ?? product.price;
 
@@ -130,11 +150,17 @@ useEffect(() => {
       <div className="border-b border-border bg-muted/20">
         <div className="container mx-auto px-4 py-3">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Link href={ROUTES.HOME} className="hover:text-gold transition-colors">
+            <Link
+              href={ROUTES.HOME}
+              className="hover:text-gold transition-colors"
+            >
               Home
             </Link>
             <ChevronRight className="h-3 w-3" />
-            <Link href={ROUTES.PRODUCTS} className="hover:text-gold transition-colors">
+            <Link
+              href={ROUTES.PRODUCTS}
+              className="hover:text-gold transition-colors"
+            >
               Products
             </Link>
             <ChevronRight className="h-3 w-3" />
@@ -185,9 +211,7 @@ useEffect(() => {
                   -{discountPercent}%
                 </Badge>
               )}
-              {isOutOfStock && (
-                <Badge variant="secondary">Out of Stock</Badge>
-              )}
+              {isOutOfStock && <Badge variant="secondary">Out of Stock</Badge>}
               {isLowStock && (
                 <Badge className="bg-warning/10 text-warning border-warning/20">
                   Only {currentStock} left
@@ -216,7 +240,8 @@ useEffect(() => {
                   ))}
                 </div>
                 <span className="text-sm text-muted-foreground">
-                  {reviewSummary.avgRating.toFixed(1)} ({reviewSummary.totalReviews} reviews)
+                  {reviewSummary.avgRating.toFixed(1)} (
+                  {reviewSummary.totalReviews} reviews)
                 </span>
               </div>
             )}
@@ -226,11 +251,12 @@ useEffect(() => {
               <span className="text-3xl font-bold text-navy dark:text-white">
                 {formatPrice(currentPrice)}
               </span>
-              {product.originalPrice && currentPrice !== product.originalPrice && (
-                <span className="text-lg text-muted-foreground line-through">
-                  {formatPrice(product.originalPrice)}
-                </span>
-              )}
+              {product.originalPrice &&
+                currentPrice !== product.originalPrice && (
+                  <span className="text-lg text-muted-foreground line-through">
+                    {formatPrice(product.originalPrice)}
+                  </span>
+                )}
               {discountPercent && (
                 <span className="text-sm text-green-600 font-medium">
                   Save {discountPercent}%
@@ -313,9 +339,21 @@ useEffect(() => {
             {/* Trust badges */}
             <div className="grid grid-cols-3 gap-3 pt-2">
               {[
-                { icon: Truck, label: 'Free Shipping', sub: 'On orders over $50' },
-                { icon: Shield, label: 'Secure Payment', sub: '100% protected' },
-                { icon: RotateCcw, label: 'Easy Returns', sub: '30 day policy' },
+                {
+                  icon: Truck,
+                  label: 'Free Shipping',
+                  sub: 'On orders over $50',
+                },
+                {
+                  icon: Shield,
+                  label: 'Secure Payment',
+                  sub: '100% protected',
+                },
+                {
+                  icon: RotateCcw,
+                  label: 'Easy Returns',
+                  sub: '30 day policy',
+                },
               ].map(({ icon: Icon, label, sub }) => (
                 <div
                   key={label}
@@ -362,7 +400,9 @@ useEffect(() => {
                   {product.description}
                 </p>
               ) : (
-                <p className="text-muted-foreground">No description available.</p>
+                <p className="text-muted-foreground">
+                  No description available.
+                </p>
               )}
             </TabsContent>
 

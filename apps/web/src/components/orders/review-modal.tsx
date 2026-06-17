@@ -34,6 +34,12 @@ interface ReviewModalProps {
   productId: string;
   productName: string;
   orderId: string;
+  existingReview?: {
+    id: string;
+    rating: number;
+    title: string | null;
+    body: string | null;
+  };
   onClose: () => void;
 }
 
@@ -41,10 +47,12 @@ export function ReviewModal({
   productId,
   productName,
   orderId,
+  existingReview,
   onClose,
 }: ReviewModalProps) {
   const queryClient = useQueryClient();
   const [hoverRating, setHoverRating] = useState(0);
+  const isEditing = !!existingReview;
 
   const {
     register,
@@ -52,14 +60,19 @@ export function ReviewModal({
     setValue,
     watch,
     formState: { errors },
+    reset,
   } = useForm<ReviewForm>({
     resolver: zodResolver(reviewSchema),
-    defaultValues: { rating: 0 },
+    defaultValues: {
+      rating: existingReview?.rating ?? 0,
+      title: existingReview?.title ?? '',
+      body: existingReview?.body ?? '',
+    },
   });
 
   const rating = watch('rating');
 
-  const { mutate: submitReview, isPending } = useMutation({
+  const { mutate: submitReview, isPending: isCreating } = useMutation({
     mutationFn: (data: ReviewForm) =>
       reviewService.submitReview({
         productId,
@@ -69,12 +82,8 @@ export function ReviewModal({
         body: data.body,
       }),
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: QUERY_KEYS.REVIEWS(productId),
-      });
-      queryClient.invalidateQueries({
-        queryKey: QUERY_KEYS.REVIEW_SUMMARY(productId),
-      });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.REVIEWS(productId) });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.REVIEW_SUMMARY(productId) });
       toast.success('Review submitted successfully');
       onClose();
     },
@@ -83,21 +92,48 @@ export function ReviewModal({
     },
   });
 
+  const { mutate: updateReview, isPending: isUpdating } = useMutation({
+    mutationFn: (data: ReviewForm) =>
+      reviewService.updateReview(productId, existingReview!.id, {
+        rating: data.rating,
+        title: data.title,
+        body: data.body,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.REVIEWS(productId) });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.REVIEW_SUMMARY(productId) });
+      toast.success('Review updated');
+      onClose();
+    },
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error, 'Failed to update review'));
+    },
+  });
+
+  const onSubmit = (data: ReviewForm) => {
+    if (isEditing) {
+      updateReview(data);
+    } else {
+      submitReview(data);
+    }
+  };
+
+  const isPending = isCreating || isUpdating;
+
   return (
     <Dialog open onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="font-playfair">Write a Review</DialogTitle>
+          <DialogTitle className="font-playfair">
+            {isEditing ? 'Edit Review' : 'Write a Review'}
+          </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-1 mb-2">
-          <p className="text-sm text-muted-foreground line-clamp-1">
-            {productName}
-          </p>
+          <p className="text-sm text-muted-foreground line-clamp-1">{productName}</p>
         </div>
 
-        <form onSubmit={handleSubmit((data) => submitReview(data))} className="space-y-4">
-          {/* Star Rating */}
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="space-y-2">
             <Label>Rating *</Label>
             <div className="flex gap-1">
@@ -121,35 +157,21 @@ export function ReviewModal({
                 </button>
               ))}
             </div>
-            {errors.rating && (
-              <p className="text-sm text-destructive">{errors.rating.message}</p>
-            )}
+            {errors.rating && <p className="text-sm text-destructive">{errors.rating.message}</p>}
           </div>
 
           <div className="space-y-2">
             <Label>Title (optional)</Label>
-            <Input
-              placeholder="Summarize your experience"
-              {...register('title')}
-            />
+            <Input placeholder="Summarize your experience" {...register('title')} />
           </div>
 
           <div className="space-y-2">
             <Label>Review (optional)</Label>
-            <Textarea
-              placeholder="Tell others about your experience..."
-              rows={4}
-              {...register('body')}
-            />
+            <Textarea placeholder="Tell others about your experience..." rows={4} {...register('body')} />
           </div>
 
           <div className="flex gap-3">
-            <Button
-              type="button"
-              variant="outline"
-              className="flex-1 cursor-pointer"
-              onClick={onClose}
-            >
+            <Button type="button" variant="outline" className="flex-1 cursor-pointer" onClick={onClose}>
               Cancel
             </Button>
             <Button
@@ -158,7 +180,7 @@ export function ReviewModal({
               disabled={isPending || rating === 0}
             >
               {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Submit Review
+              {isEditing ? 'Update Review' : 'Submit Review'}
             </Button>
           </div>
         </form>

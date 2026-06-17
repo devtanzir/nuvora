@@ -168,7 +168,7 @@ export class AuthService {
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
       secure: this.configService.get('NODE_ENV') === 'production',
-      sameSite: 'strict',
+      sameSite: 'lax',
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
@@ -236,7 +236,7 @@ export class AuthService {
     res.cookie('refreshToken', newRefreshToken, {
       httpOnly: true,
       secure: this.configService.get('NODE_ENV') === 'production',
-      sameSite: 'strict',
+      sameSite: 'lax',
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
@@ -393,7 +393,7 @@ async googleLogin(googleUser: any, res: any) {
   res.cookie('refreshToken', refreshToken, {
     httpOnly: true,
     secure: this.configService.get('NODE_ENV') === 'production',
-    sameSite: 'strict',
+    sameSite: 'lax',
     maxAge: 7 * 24 * 60 * 60 * 1000,
   });
 

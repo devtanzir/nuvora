@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
@@ -10,13 +11,27 @@ import {
   Tag,
   ExternalLink,
   Star,
+  Download,
+  Pencil,
+  Trash2,
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { orderService } from '@/services/order.service';
+import { reviewService } from '@/services/review.service';
 import { QUERY_KEYS } from '@/constants/query-keys';
 import { OrderStatus } from '@/types/order.types';
 import { formatPrice, formatDate } from '@/lib/utils';
@@ -24,28 +39,19 @@ import { ROUTES } from '@/constants/routes';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import getErrorMessage from '@/lib/error';
-import { useState } from 'react';
 import { ReviewModal } from './review-modal';
+import api from '@/lib/axios';
 
 const STATUS_COLORS: Record<OrderStatus, string> = {
-  PENDING:
-    'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
-  PROCESSING:
-    'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-  SHIPPED:
-    'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
-  DELIVERED:
-    'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+  PENDING: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
+  PROCESSING: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+  SHIPPED: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
+  DELIVERED: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
   CANCELLED: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
   REFUNDED: 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400',
 };
 
-const STATUS_STEPS: OrderStatus[] = [
-  'PENDING',
-  'PROCESSING',
-  'SHIPPED',
-  'DELIVERED',
-];
+const STATUS_STEPS: OrderStatus[] = ['PENDING', 'PROCESSING', 'SHIPPED', 'DELIVERED'];
 
 interface OrderDetailContentProps {
   orderId: string;
@@ -56,7 +62,10 @@ export function OrderDetailContent({ orderId }: OrderDetailContentProps) {
   const [reviewItem, setReviewItem] = useState<{
     productId: string;
     productName: string;
+    review?: { id: string; rating: number; title: string | null; body: string | null } | null;
   } | null>(null);
+
+  const [deleteReviewId, setDeleteReviewId] = useState<string | null>(null);
 
   const { data: order, isLoading } = useQuery({
     queryKey: QUERY_KEYS.ORDER(orderId),
@@ -76,8 +85,7 @@ export function OrderDetailContent({ orderId }: OrderDetailContentProps) {
   });
 
   const { mutate: requestRefund, isPending: isRefunding } = useMutation({
-    mutationFn: () =>
-      orderService.requestRefund(orderId, 'Customer requested refund'),
+    mutationFn: () => orderService.requestRefund(orderId, 'Customer requested refund'),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.ORDER(orderId) });
       toast.success('Refund request submitted');
@@ -86,6 +94,38 @@ export function OrderDetailContent({ orderId }: OrderDetailContentProps) {
       toast.error(getErrorMessage(error, 'Failed to request refund'));
     },
   });
+
+  const { mutate: deleteReview, isPending: isDeletingReview } = useMutation({
+    mutationFn: (reviewId: string) => reviewService.deleteReview(reviewItem!.productId, reviewId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.ORDER(orderId) });
+      toast.success('Review deleted');
+      setDeleteReviewId(null);
+      setReviewItem(null);
+    },
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error, 'Failed to delete review'));
+    },
+  });
+
+  const handleDownloadInvoice = async () => {
+    try {
+      const response = await api.get(`/orders/${orderId}/invoice`, {
+        responseType: 'blob',
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `invoice-${orderId}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success('Invoice downloaded');
+    } catch {
+      toast.error('Failed to download invoice');
+    }
+  };
 
   if (isLoading) {
     return (
@@ -115,8 +155,6 @@ export function OrderDetailContent({ orderId }: OrderDetailContentProps) {
   const isCancellable = order.status === 'PENDING';
   const isRefundable = order.status === 'DELIVERED';
 
-  console.log(order, "this is order details");
-
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -132,18 +170,13 @@ export function OrderDetailContent({ orderId }: OrderDetailContentProps) {
           <div className="flex items-start justify-between gap-4 flex-wrap">
             <div>
               <h1 className="text-2xl font-playfair font-bold text-navy dark:text-white">
-                Order #{order.id.slice(-8).toUpperCase()}
+                Order #{order.orderNumber ?? order.id.slice(-8).toUpperCase()}
               </h1>
               <p className="text-sm text-muted-foreground mt-1">
                 Placed on {formatDate(order.createdAt)}
               </p>
             </div>
-            <Badge
-              className={cn(
-                'text-sm font-medium border-0 px-3 py-1',
-                STATUS_COLORS[order.status],
-              )}
-            >
+            <Badge className={cn('text-sm font-medium border-0 px-3 py-1', STATUS_COLORS[order.status])}>
               {order.status}
             </Badge>
           </div>
@@ -154,44 +187,21 @@ export function OrderDetailContent({ orderId }: OrderDetailContentProps) {
         {/* Order Progress */}
         {!['CANCELLED', 'REFUNDED'].includes(order.status) && (
           <div className="p-5 rounded-xl border border-border bg-card">
-            <p className="text-sm font-medium text-navy dark:text-white mb-4">
-              Order Progress
-            </p>
+            <p className="text-sm font-medium text-navy dark:text-white mb-4">Order Progress</p>
             <div className="flex items-center gap-2">
               {STATUS_STEPS.map((step, index) => {
                 const isCompleted = index <= currentStepIndex;
                 const isActive = index === currentStepIndex;
-
                 return (
                   <div key={step} className="flex items-center gap-2 flex-1">
                     <div className="flex flex-col items-center gap-1 flex-1">
-                      <div
-                        className={cn(
-                          'h-3 w-3 rounded-full transition-all',
-                          isCompleted
-                            ? 'bg-gold'
-                            : 'bg-muted border-2 border-border',
-                          isActive && 'ring-2 ring-gold ring-offset-2',
-                        )}
-                      />
-                      <p
-                        className={cn(
-                          'text-[10px] text-center',
-                          isCompleted
-                            ? 'text-gold font-medium'
-                            : 'text-muted-foreground',
-                        )}
-                      >
+                      <div className={cn('h-3 w-3 rounded-full transition-all', isCompleted ? 'bg-gold' : 'bg-muted border-2 border-border', isActive && 'ring-2 ring-gold ring-offset-2')} />
+                      <p className={cn('text-[10px] text-center', isCompleted ? 'text-gold font-medium' : 'text-muted-foreground')}>
                         {step.charAt(0) + step.slice(1).toLowerCase()}
                       </p>
                     </div>
                     {index < STATUS_STEPS.length - 1 && (
-                      <div
-                        className={cn(
-                          'h-px flex-1 mb-4 transition-all',
-                          index < currentStepIndex ? 'bg-gold' : 'bg-border',
-                        )}
-                      />
+                      <div className={cn('h-px flex-1 mb-4 transition-all', index < currentStepIndex ? 'bg-gold' : 'bg-border')} />
                     )}
                   </div>
                 );
@@ -204,9 +214,7 @@ export function OrderDetailContent({ orderId }: OrderDetailContentProps) {
         <div className="p-5 rounded-xl border border-border bg-card space-y-4">
           <div className="flex items-center gap-2">
             <Package className="h-4 w-4 text-gold" />
-            <p className="font-medium text-navy dark:text-white">
-              Items ({order.items.length})
-            </p>
+            <p className="font-medium text-navy dark:text-white">Items ({order.items.length})</p>
           </div>
 
           <div className="space-y-4">
@@ -214,13 +222,7 @@ export function OrderDetailContent({ orderId }: OrderDetailContentProps) {
               <div key={item.id} className="flex gap-4">
                 <div className="h-16 w-16 rounded-lg overflow-hidden bg-muted border border-border shrink-0">
                   {item.primaryImage ? (
-                    <Image
-                      src={item.primaryImage}
-                      alt={item.productName}
-                      width={64}
-                      height={64}
-                      className="w-full h-full object-cover"
-                    />
+                    <Image src={item.primaryImage} alt={item.productName} width={64} height={64} className="w-full h-full object-cover" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
                       <ShoppingBag className="h-6 w-6 text-muted-foreground/30" />
@@ -228,9 +230,7 @@ export function OrderDetailContent({ orderId }: OrderDetailContentProps) {
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium line-clamp-1">
-                    {item.productName}
-                  </p>
+                  <p className="text-sm font-medium line-clamp-1">{item.productName}</p>
                   {item.variantName && (
                     <p className="text-xs text-muted-foreground">
                       {item.variantName}: {item.variantValue}
@@ -244,21 +244,54 @@ export function OrderDetailContent({ orderId }: OrderDetailContentProps) {
                       {formatPrice(item.itemTotal)}
                     </p>
                   </div>
+
+                  {/* Review action buttons */}
                   {order.status === 'DELIVERED' && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="mt-2 cursor-pointer text-xs"
-                      onClick={() =>
-                        setReviewItem({
-                          productId: item.productId,
-                          productName: item.productName,
-                        })
-                      }
-                    >
-                      <Star className="mr-1 h-3 w-3" />
-                      Write Review
-                    </Button>
+                    <div className="mt-2">
+                      {item.review ? (
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="cursor-pointer text-xs"
+                            onClick={() =>
+                              setReviewItem({
+                                productId: item.productId,
+                                productName: item.productName,
+                                review: item.review,
+                              })
+                            }
+                          >
+                            <Pencil className="mr-1 h-3 w-3" />
+                            Edit Review
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="cursor-pointer text-xs text-destructive"
+                            onClick={() => setDeleteReviewId(item.review?.id ?? null)}
+                          >
+                            <Trash2 className="mr-1 h-3 w-3" />
+                            Delete
+                          </Button>
+                        </div>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="cursor-pointer text-xs"
+                          onClick={() =>
+                            setReviewItem({
+                              productId: item.productId,
+                              productName: item.productName,
+                            })
+                          }
+                        >
+                          <Star className="mr-1 h-3 w-3" />
+                          Write Review
+                        </Button>
+                      )}
+                    </div>
                   )}
                 </div>
               </div>
@@ -280,9 +313,7 @@ export function OrderDetailContent({ orderId }: OrderDetailContentProps) {
                   <Tag className="h-3 w-3" />
                   {order.promoCode?.code}
                 </span>
-                <span className="text-green-600">
-                  -{formatPrice(order.discount)}
-                </span>
+                <span className="text-green-600">-{formatPrice(order.discount)}</span>
               </div>
             )}
             <div className="flex justify-between text-sm">
@@ -295,7 +326,6 @@ export function OrderDetailContent({ orderId }: OrderDetailContentProps) {
               <span>{formatPrice(order.total)}</span>
             </div>
           </div>
-
           {order.stripeReceiptUrl && (
             <a
               href={order.stripeReceiptUrl}
@@ -313,24 +343,23 @@ export function OrderDetailContent({ orderId }: OrderDetailContentProps) {
         <div className="p-5 rounded-xl border border-border bg-card space-y-3">
           <div className="flex items-center gap-2">
             <MapPin className="h-4 w-4 text-gold" />
-            <p className="font-medium text-navy dark:text-white">
-              Delivery Address
-            </p>
+            <p className="font-medium text-navy dark:text-white">Delivery Address</p>
           </div>
           <div className="space-y-1">
             <p className="text-sm font-medium">{order.address.fullName}</p>
+            <p className="text-sm text-muted-foreground">{order.address.phone}</p>
             <p className="text-sm text-muted-foreground">
-              {order.address.phone}
-            </p>
-            <p className="text-sm text-muted-foreground">
-              {order.address.street}, {order.address.city},{' '}
-              {order.address.district} {order.address.postalCode}
+              {order.address.street}, {order.address.city}, {order.address.district} {order.address.postalCode}
             </p>
           </div>
         </div>
 
         {/* Actions */}
-        <div className="flex gap-3">
+        <div className="flex gap-3 flex-wrap">
+          <Button variant="outline" size="sm" className="cursor-pointer" onClick={handleDownloadInvoice}>
+            <Download className="mr-2 h-4 w-4" />
+            Download Invoice
+          </Button>
           {isCancellable && (
             <Button
               variant="outline"
@@ -353,14 +382,37 @@ export function OrderDetailContent({ orderId }: OrderDetailContentProps) {
           )}
         </div>
       </div>
+
+      {/* Review Modal (create/edit) */}
       {reviewItem && (
         <ReviewModal
           productId={reviewItem.productId}
           productName={reviewItem.productName}
           orderId={order.id}
+          existingReview={reviewItem.review ?? undefined}
           onClose={() => setReviewItem(null)}
         />
       )}
+
+      {/* Delete Review Confirmation */}
+      <AlertDialog open={!!deleteReviewId} onOpenChange={() => setDeleteReviewId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Review?</AlertDialogTitle>
+            <AlertDialogDescription>This action cannot be undone.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="cursor-pointer">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive hover:bg-destructive/90 cursor-pointer"
+              onClick={() => deleteReviewId && deleteReview(deleteReviewId)}
+              disabled={isDeletingReview}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

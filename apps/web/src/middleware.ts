@@ -30,26 +30,25 @@ function decodeToken(token: string): JwtPayload | null {
   }
 }
 
-function isTokenExpired(payload: JwtPayload): boolean {
-  return Date.now() >= payload.exp * 1000;
-}
-
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const token = request.cookies.get(ACCESS_TOKEN_KEY)?.value;
 
-  // Auth routes - redirect to home if already logged in
+  // Auth routes - redirect to home if a session cookie exists.
+  // Actual validity (expired/refreshable) is handled client-side.
   if (authRoutes.some((route) => pathname.startsWith(route))) {
     if (token) {
-      const payload = decodeToken(token);
-      if (payload && !isTokenExpired(payload)) {
-        return NextResponse.redirect(new URL('/', request.url));
-      }
+      return NextResponse.redirect(new URL('/', request.url));
     }
     return NextResponse.next();
   }
 
-  // Protected routes - open login modal with redirect param
+  // Protected routes - only check that a session cookie exists.
+  // Do NOT validate `exp` here — the access token is short-lived
+  // by design (15m) and is silently refreshed client-side via the
+  // axios response interceptor + refreshToken cookie. Validating
+  // `exp` here causes a forced logout every 15 minutes even when
+  // the refresh token is still valid.
   if (protectedRoutes.some((route) => pathname.startsWith(route))) {
     if (!token) {
       const url = new URL('/', request.url);
@@ -57,19 +56,12 @@ export function middleware(request: NextRequest) {
       url.searchParams.set('redirect', pathname);
       return NextResponse.redirect(url);
     }
-
-    const payload = decodeToken(token);
-    if (!payload || isTokenExpired(payload)) {
-      const url = new URL('/', request.url);
-      url.searchParams.set('login', 'true');
-      url.searchParams.set('redirect', pathname);
-      return NextResponse.redirect(url);
-    }
-
     return NextResponse.next();
   }
 
-  // Admin routes - token required + ADMIN role required
+  // Admin routes - check cookie presence + role from token payload.
+  // Role doesn't change on refresh, so decoding for role is fine —
+  // we just don't gate on `exp`.
   if (adminRoutes.some((route) => pathname.startsWith(route))) {
     if (!token) {
       const url = new URL('/', request.url);
@@ -79,7 +71,7 @@ export function middleware(request: NextRequest) {
 
     const payload = decodeToken(token);
 
-    if (!payload || isTokenExpired(payload)) {
+    if (!payload) {
       const url = new URL('/', request.url);
       url.searchParams.set('login', 'true');
       return NextResponse.redirect(url);

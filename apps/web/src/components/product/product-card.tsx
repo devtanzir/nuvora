@@ -71,7 +71,7 @@ export function ProductCard({ product }: ProductCardProps) {
                 -{discountPercent}%
               </Badge>
             )}
-            {product.stock === 0 && (
+            {product.totalStock === 0 && (
               <Badge variant="secondary" className="text-xs">
                 Out of Stock
               </Badge>
@@ -124,7 +124,7 @@ export function ProductCard({ product }: ProductCardProps) {
         </div>
 
         {/* Add to cart - always visible, handles auth check */}
-        {product.stock > 0 && (
+        {product.totalStock > 0 && (
           <Button
             size="sm"
             className="w-full bg-navy hover:bg-navy-light dark:bg-gold dark:hover:bg-gold-dark dark:text-navy text-white opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"

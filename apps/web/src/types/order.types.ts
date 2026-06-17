@@ -27,6 +27,12 @@ export interface OrderItem {
   quantity: number;
   price: number;
   itemTotal: number;
+  review?: {
+    id: string;
+    rating: number;
+    title: string | null;
+    body: string | null;
+  } | null;
 }
 
 export interface Order {
@@ -43,6 +49,8 @@ export interface Order {
 export interface OrderDetail extends Omit<Order, 'items'> {
   stripeReceiptUrl: string | null;
   trackingNumber: string | null;
+  orderNumber: string | null;
+  refundRequest?: RefundRequest | null;
   address: Omit<Address, 'id' | 'isDefault'>;
   promoCode: {
     code: string;

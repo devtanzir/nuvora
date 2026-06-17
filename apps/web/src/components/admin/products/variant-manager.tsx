@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useForm } from 'react-hook-form';
+import { Resolver, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Plus, Trash2, Edit, Check, X, Loader2 } from 'lucide-react';
@@ -14,11 +14,19 @@ import { ProductVariant } from '@/types/product.types';
 import { toast } from 'sonner';
 import getErrorMessage from '@/lib/error';
 
+// Schema - price truly optional
 const variantSchema = z.object({
   name: z.string().min(1, 'Name required'),
   value: z.string().min(1, 'Value required'),
-  stock: z.number().min(0),
-  price: z.number().min(0.01).optional(),
+  stock: z.coerce.number().min(0, 'Stock must be ≥ 0'),
+  price: z.preprocess(
+    (val) => {
+      if (val === '' || val === undefined || val === null) return undefined;
+      const num = Number(val);
+      return isNaN(num) ? undefined : num;
+    },
+    z.number().min(0.01, 'Price must be at least 0.01').optional(),
+  ),
 });
 
 type VariantForm = z.infer<typeof variantSchema>;
@@ -36,7 +44,16 @@ export function VariantManager({ productId, variants }: VariantManagerProps) {
   const [editPrice, setEditPrice] = useState<number | undefined>(undefined);
 
   const { mutate: addVariant, isPending: isAddingVariant } = useMutation({
-    mutationFn: (data: VariantForm) => adminService.addVariant(productId, data),
+    mutationFn: (data: VariantForm) => {
+      // omit nullable price
+      const payload = {
+        name: data.name,
+        value: data.value,
+        stock: data.stock,
+        price: data.price ?? undefined,
+      };
+      return adminService.addVariant(productId, payload);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'product'] });
       toast.success('Variant added');
@@ -84,9 +101,21 @@ export function VariantManager({ productId, variants }: VariantManagerProps) {
     formState: { errors },
     reset,
   } = useForm<VariantForm>({
-    resolver: zodResolver(variantSchema),
-    defaultValues: { name: 'Size', stock: 0 },
+    resolver: zodResolver(variantSchema) as Resolver<VariantForm>,
+    defaultValues: {
+      name: 'Size',
+      value: '',
+      stock: 0,
+      price: undefined,
+    },
   });
+
+  const onAddSubmit = () => {
+    handleSubmit(
+      (data) => addVariant(data),
+      (errors) => console.log('Validation errors:', errors),
+    )();
+  };
 
   return (
     <div className="p-5 rounded-xl border border-border bg-card space-y-4">
@@ -108,7 +137,7 @@ export function VariantManager({ productId, variants }: VariantManagerProps) {
         )}
       </div>
 
-      {/* Existing variants */}
+      {/* Existing variants - unchanged */}
       {variants.length > 0 ? (
         <div className="space-y-2">
           {variants.map((variant) => (
@@ -209,10 +238,12 @@ export function VariantManager({ productId, variants }: VariantManagerProps) {
         <p className="text-sm text-muted-foreground">No variants yet.</p>
       )}
 
-      {/* Add variant form */}
+      {/* Add variant form - NO form tag, just a div + button */}
       {isAdding && (
-        <form
-          onSubmit={handleSubmit((data) => addVariant(data))}
+        <div
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') e.preventDefault();
+          }}
           className="space-y-3 p-3 rounded-lg border border-gold/30 bg-gold/5"
         >
           <p className="text-xs font-medium text-navy dark:text-white">
@@ -252,16 +283,17 @@ export function VariantManager({ productId, variants }: VariantManagerProps) {
             <Input
               type="number"
               placeholder="Price (optional)"
-              {...register('price', { valueAsNumber: true })}
+              {...register('price')}
               className="h-8 text-xs"
             />
           </div>
           <div className="flex gap-2">
             <Button
-              type="submit"
+              type="button"
               size="sm"
               className="bg-navy hover:bg-navy-light text-white cursor-pointer h-7 text-xs"
               disabled={isAddingVariant}
+              onClick={onAddSubmit}
             >
               {isAddingVariant && (
                 <Loader2 className="mr-1 h-3 w-3 animate-spin" />
@@ -281,7 +313,7 @@ export function VariantManager({ productId, variants }: VariantManagerProps) {
               Cancel
             </Button>
           </div>
-        </form>
+        </div>
       )}
     </div>
   );

@@ -84,7 +84,7 @@ export function WishlistContent() {
               <AnimatePresence>
                 {data.items.map((item) => {
                   const { product } = item;
-                  const isOutOfStock = product.stock === 0;
+                  const isOutOfStock = product.totalStock === 0;
 
                   return (
                     <motion.div

@@ -14,6 +14,7 @@ import { ROUTES } from '@/constants/routes';
 import { useDebounce } from '@/hooks/use-debounce';
 import { formatPrice } from '@/lib/utils';
 import { useUIStore } from '@/store/ui.store';
+import Image from 'next/image';
 
 export function SearchDialog() {
   const router = useRouter();
@@ -90,10 +91,12 @@ export function SearchDialog() {
                 >
                   <div className="h-12 w-12 rounded-lg overflow-hidden bg-muted shrink-0 border border-border">
                     {product.primaryImage ? (
-                      <img
+                      <Image
                         src={product.primaryImage}
                         alt={product.name}
                         className="w-full h-full object-cover"
+                        width={80}
+                        height={80}
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">

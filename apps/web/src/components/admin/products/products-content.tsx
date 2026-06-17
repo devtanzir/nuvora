@@ -212,16 +212,16 @@ export function AdminProductsContent() {
                   <td className="p-4 hidden lg:table-cell">
                     <Badge
                       className={
-                        product.stock === 0
+                        product.totalStock === 0
                           ? 'bg-red-100 text-red-700 border-0'
-                          : product.stock <= 10
+                          : product.totalStock <= 10
                             ? 'bg-yellow-100 text-yellow-700 border-0'
                             : 'bg-green-100 text-green-700 border-0'
                       }
                     >
-                      {product.stock === 0
+                      {product.totalStock === 0
                         ? 'Out of Stock'
-                        : `${product.stock} units`}
+                        : `${product.totalStock} units`}
                     </Badge>
                   </td>
 

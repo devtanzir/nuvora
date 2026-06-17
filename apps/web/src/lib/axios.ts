@@ -4,8 +4,6 @@ import { authCookies } from './auth';
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 // ─── Unwrap helper ────────────────────────────────────────────────
-// Backend wraps all responses as { success, data: { data: T } }
-// This normalizes it to { success, data: T }
 function unwrapResponse(data: unknown): unknown {
   if (
     data &&
@@ -23,11 +21,6 @@ function unwrapResponse(data: unknown): unknown {
   return data;
 }
 
-export const api = axios.create({
-  baseURL: API_URL,
-  withCredentials: true,
-});
-
 // ─── Refresh queue ────────────────────────────────────────────────
 let isRefreshing = false;
 let failedQueue: Array<{
@@ -44,11 +37,23 @@ const processQueue = (error: unknown, token: string | null = null): void => {
 };
 
 const redirectToLogin = (): void => {
+  processQueue(new Error('Session expired'), null);
   authCookies.removeToken();
   if (typeof window !== 'undefined') {
     window.location.href = '/login';
   }
 };
+
+export const api = axios.create({
+  baseURL: API_URL,
+  withCredentials: true,
+});
+
+// ─── Raw client for token refresh (no interceptors → avoids recursion) ───
+const refreshClient = axios.create({
+  baseURL: API_URL,
+  withCredentials: true,
+});
 
 // ─── Request interceptor ──────────────────────────────────────────
 api.interceptors.request.use((config) => {
@@ -62,7 +67,7 @@ api.interceptors.request.use((config) => {
 // ─── Response interceptor ─────────────────────────────────────────
 api.interceptors.response.use(
   (response) => {
-    // Normalize double-nested backend response
+    // Unwrap double-nested if present, otherwise keep as is
     response.data = unwrapResponse(response.data);
     return response;
   },
@@ -95,16 +100,10 @@ api.interceptors.response.use(
     isRefreshing = true;
 
     try {
-      // Use separate axios call - goes through same interceptor
-      // so response will be unwrapped automatically
-      const refreshRes = await api.post(
-        `/auth/refresh`,
-        {},
-        { withCredentials: true },
-      );
-
-      // After unwrap, shape is { success, data: { accessToken } }
+      const refreshRes = await refreshClient.post('/auth/refresh');
+console.log('[refresh raw response]', refreshRes.data);
       const newToken: string = refreshRes.data.data.accessToken;
+      console.log('[new token]', newToken);
       authCookies.setToken(newToken);
       processQueue(null, newToken);
 

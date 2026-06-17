@@ -31,7 +31,7 @@ export interface Product {
   originalPrice: number | null;
   avgRating: number;
   reviewCount: number;
-  stock: number;
+  totalStock: number;
   isActive: boolean;
   category: Pick<Category, 'id' | 'name' | 'slug'>;
   primaryImage: string | null;

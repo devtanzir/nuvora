@@ -1,6 +1,7 @@
 import { Category, ProductDetail } from '@/types/product.types';
 import api from '../lib/axios';
 import { ApiResponse } from '../types/api.types';
+import { OrderDetail } from '@/types/order.types';
 
 export interface DashboardOverview {
   totalRevenue: {
@@ -96,7 +97,7 @@ export interface AdminProduct {
   slug: string;
   price: number;
   originalPrice: number | null;
-  stock: number;
+  totalStock: number;
   isActive: boolean;
   category: {
     id: string;
@@ -421,5 +422,21 @@ updateVariant: async (
 
 deleteVariant: async (productId: string, variantId: string) => {
   await api.delete(`/products/${productId}/variants/${variantId}`);
+},
+deleteProductImage: async (productId: string, imageId: string) => {
+  await api.delete(`/products/${productId}/images/${imageId}`);
+},
+
+addProductImages: async (productId: string, images: { url: string; isPrimary: boolean }[]) => {
+  const res = await api.post(`/products/${productId}/images`, { images });
+  return res.data.data;
+},
+getOrder: async (id: string): Promise<OrderDetail> => {
+  const res = await api.get<ApiResponse<OrderDetail>>(`/orders/admin/${id}`);
+  return res.data.data;
+},
+processRefund: async (orderId: string, data: { action: 'APPROVE' | 'REJECT' }) => {
+  const res = await api.post(`/orders/admin/${orderId}/refund`, data);
+  return res.data.data;
 },
 };

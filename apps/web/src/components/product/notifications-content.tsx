@@ -1,7 +1,7 @@
 'use client';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Bell, Check, Package, ShoppingCart, Star } from 'lucide-react';
+import { Bell, Check, Package, ShoppingCart } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -12,8 +12,13 @@ import { toast } from 'sonner';
 import getErrorMessage from '@/lib/error';
 
 const NOTIFICATION_ICONS: Record<string, typeof Bell> = {
+  ORDER_PLACED: ShoppingCart,
   ORDER_STATUS_UPDATE: ShoppingCart,
-  REVIEW_REQUEST: Star,
+  REFUND_PROCESSED: ShoppingCart,
+  REFUND_REQUESTED: ShoppingCart,
+  BACK_IN_STOCK: Package,
+  WELCOME: Bell,
+  PASSWORD_RESET: Bell,
   DEFAULT: Package,
 };
 
@@ -99,7 +104,7 @@ export function NotificationsContent() {
           <div className="space-y-2">
             {data.notifications.map((notification, index) => {
               const Icon =
-                NOTIFICATION_ICONS[notification.title] ??
+                NOTIFICATION_ICONS[notification.type] ??
                 NOTIFICATION_ICONS.DEFAULT;
               const isUnread = !notification.isRead;
 

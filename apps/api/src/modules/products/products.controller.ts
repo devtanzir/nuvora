@@ -150,4 +150,29 @@ async adminFindAll(@Query() query: ProductQueryDto) {
     );
     return { data };
   }
+
+  @Delete(':id/images/:imageId')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(Role.ADMIN)
+@ApiBearerAuth('JWT-auth')
+@ApiOperation({ summary: 'Delete product image - Admin only' })
+async deleteImage(
+  @Param('id') productId: string,
+  @Param('imageId') imageId: string,
+) {
+  return this.productsService.deleteImage(productId, imageId);
+}
+
+@Post(':id/images')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(Role.ADMIN)
+@ApiBearerAuth('JWT-auth')
+@ApiOperation({ summary: 'Add images to product - Admin only' })
+async addImages(
+  @Param('id') productId: string,
+  @Body() body: { images: { url: string; isPrimary: boolean }[] },
+) {
+  const data = await this.productsService.addImages(productId, body.images);
+  return { message: 'Images added', data };
+}
 }

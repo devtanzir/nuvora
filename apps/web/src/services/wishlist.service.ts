@@ -10,7 +10,7 @@ export interface WishlistItem {
     'id' | 'name' | 'slug' | 'price' | 'originalPrice' | 'isActive' | 'avgRating'
   > & {
     primaryImage: string | null;
-    stock: number;
+    totalStock: number;
   };
 }
 

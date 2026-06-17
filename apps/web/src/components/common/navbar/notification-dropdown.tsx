@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Bell, Check, Package } from 'lucide-react';
+import { Bell, Check, Package, ShoppingCart } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
@@ -14,6 +14,17 @@ import { cn } from '@/lib/utils';
 import getErrorMessage from '@/lib/error';
 import { toast } from 'sonner';
 
+
+const NOTIFICATION_ICONS: Record<string, typeof Bell> = {
+  ORDER_PLACED: ShoppingCart,
+  ORDER_STATUS_UPDATE: ShoppingCart,
+  REFUND_PROCESSED: ShoppingCart,
+  REFUND_REQUESTED: ShoppingCart,
+  BACK_IN_STOCK: Package,
+  WELCOME: Bell,
+  PASSWORD_RESET: Bell,
+  DEFAULT: Package,
+};
 export function NotificationDropdown() {
   const { isAuthenticated } = useAuthStore();
   const queryClient = useQueryClient();
@@ -115,7 +126,10 @@ export function NotificationDropdown() {
                     </p>
                   </div>
                 ) : (
-                  notifications.map((notification) => (
+                  notifications.map((notification) => {
+                    const IconComponent = NOTIFICATION_ICONS[notification.type] ?? NOTIFICATION_ICONS.DEFAULT;
+
+                    return (
                     <div
                       key={notification.id}
                       className={cn(
@@ -129,7 +143,7 @@ export function NotificationDropdown() {
                       }}
                     >
                       <div className="h-8 w-8 rounded-full bg-navy/10 dark:bg-white/10 flex items-center justify-center shrink-0 mt-0.5">
-                        <Package className="h-4 w-4 text-gold" />
+                        <IconComponent className="h-4 w-4 text-gold" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-navy dark:text-white line-clamp-1">
@@ -143,7 +157,7 @@ export function NotificationDropdown() {
                         <div className="h-2 w-2 rounded-full bg-gold shrink-0 mt-1.5" />
                       )}
                     </div>
-                  ))
+                  )})
                 )}
               </div>
 

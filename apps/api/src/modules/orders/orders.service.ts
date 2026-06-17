@@ -278,16 +278,17 @@ export class OrdersService {
       const datePart = `${today.getFullYear().toString().slice(-2)}${(today.getMonth() + 1).toString().padStart(2, '0')}${today.getDate().toString().padStart(2, '0')}`;
       const prefix = `NU-${datePart}-`;
 
-      // Get today's last order number using raw SQL (postgres)
       const lastOrder: any[] = await tx.$queryRaw`
-  SELECT order_number FROM orders
-  WHERE order_number LIKE ${prefix + '%'}
-  ORDER BY order_number DESC LIMIT 1
+  SELECT "orderNumber" FROM "orders"
+  WHERE "orderNumber" LIKE ${prefix + '%'} AND "orderNumber" IS NOT NULL
+  ORDER BY "orderNumber" DESC LIMIT 1
 `;
       let nextSequence = 1;
-      if (lastOrder.length > 0) {
-        const lastNum = parseInt(lastOrder[0].order_number.split('-')[2]);
-        nextSequence = lastNum + 1;
+      if (lastOrder.length > 0 && lastOrder[0].orderNumber) {
+        const parts = lastOrder[0].orderNumber.split('-');
+        if (parts.length >= 3) {
+          nextSequence = parseInt(parts[2]) + 1;
+        }
       }
       const orderNumber = `${prefix}${nextSequence.toString().padStart(4, '0')}`;
 
@@ -520,6 +521,7 @@ export class OrdersService {
                 },
               },
             },
+            review: true,
             variant: true,
           },
         },
@@ -549,6 +551,7 @@ export class OrdersService {
         quantity: item.quantity,
         price: item.price,
         itemTotal: item.price * item.quantity,
+        review: item.review,
       })),
     };
   }
@@ -624,6 +627,7 @@ export class OrdersService {
       where: { id: orderId },
       select: {
         userId: true,
+        orderNumber: true,
         status: true,
         deliveredAt: true,
         refundRequest: true,
@@ -652,6 +656,27 @@ export class OrdersService {
       data: { orderId, reason: dto.reason },
       select: { id: true, status: true, reason: true, createdAt: true },
     });
+
+    try {
+      const admins = await this.prisma.user.findMany({
+        where: { role: 'ADMIN', isActive: true },
+        select: { id: true },
+      });
+
+      for (const admin of admins) {
+        await this.prisma.notification.create({
+          data: {
+            userId: admin.id,
+            // cast to any to satisfy NotificationType union
+            type: 'REFUND_REQUESTED' as any,
+            title: 'New Refund Request',
+            body: `Order ${order.orderNumber ?? orderId} has a refund request. Reason: ${dto.reason}`,
+          },
+        });
+      }
+    } catch (err) {
+      this.logger.error('Failed to notify admin about refund request', err);
+    }
 
     return refund;
   }
@@ -964,4 +989,54 @@ export class OrdersService {
 
     return this.invoiceService.generateInvoice(order);
   }
+
+async getAdminOrderDetail(orderId: string) {
+  const order = await this.prisma.order.findUnique({
+    where: { id: orderId },
+    include: {
+      address: true,
+      promoCode: true,
+      refundRequest: true,
+      items: {
+        include: {
+          product: {
+            select: {
+              name: true,
+              images: { where: { isPrimary: true }, select: { url: true }, take: 1 },
+            },
+          },
+          variant: true,
+          review: true,
+        },
+      },
+    },
+  });
+
+  if (!order) throw new NotFoundException('Order not found');
+
+  return {
+    id: order.id,
+    status: order.status,
+    subtotal: order.subtotal,
+    discount: order.discount,
+    total: order.total,
+    stripeReceiptUrl: order.stripeReceiptUrl,
+    orderNumber: order.orderNumber,
+    refundRequest: order.refundRequest,
+    createdAt: order.createdAt,
+    address: order.address,
+    promoCode: order.promoCode,
+    items: order.items.map((item) => ({
+      id: item.id,
+      productId: item.productId,
+      productName: item.product.name,
+      primaryImage: item.product.images[0]?.url ?? null,
+      variantName: item.variant?.name ?? null,
+      variantValue: item.variant?.value ?? null,
+      quantity: item.quantity,
+      price: item.price,
+      itemTotal: item.price * item.quantity,
+    })),
+  };
+}
 }

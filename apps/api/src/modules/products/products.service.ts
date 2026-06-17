@@ -454,4 +454,63 @@ export class ProductsService {
       meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
     };
   }
+
+  async deleteImage(productId: string, imageId: string) {
+  const image = await this.prisma.productImage.findFirst({
+    where: { id: imageId, productId },
+  });
+  if (!image) throw new NotFoundException('Image not found');
+
+  await this.prisma.productImage.delete({ where: { id: imageId } });
+
+  if (image.isPrimary) {
+    const next = await this.prisma.productImage.findFirst({
+      where: { productId },
+      orderBy: { order: 'asc' },
+    });
+    if (next) {
+      await this.prisma.productImage.update({
+        where: { id: next.id },
+        data: { isPrimary: true },
+      });
+    }
+  }
+
+  return { message: 'Image deleted successfully' };
+}
+
+async addImages(productId: string, images: { url: string; isPrimary: boolean }[]) {
+  const product = await this.prisma.product.findUnique({ where: { id: productId, isDeleted: false } });
+  if (!product) throw new NotFoundException('Product not found');
+
+  const maxOrder = await this.prisma.productImage.findFirst({
+    where: { productId },
+    orderBy: { order: 'desc' },
+    select: { order: true },
+  });
+  let startOrder = (maxOrder?.order ?? -1) + 1;
+
+  if (images.some(img => img.isPrimary)) {
+    await this.prisma.productImage.updateMany({
+      where: { productId, isPrimary: true },
+      data: { isPrimary: false },
+    });
+  }
+
+  const created = await Promise.all(
+    images.map((img, i) =>
+      this.prisma.productImage.create({
+        data: {
+          productId,
+          url: img.url,
+          order: startOrder + i,
+          isPrimary: img.isPrimary,
+        },
+        select: { id: true, url: true, order: true, isPrimary: true },
+      }),
+    ),
+  );
+
+  return created;
+}
 }

@@ -205,4 +205,14 @@ export class OrdersController {
     const data = await this.ordersService.processRefund(orderId, dto);
     return { message: 'Refund processed successfully', data };
   }
+
+  @Get('admin/:id')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(Role.ADMIN)
+@ApiBearerAuth('JWT-auth')
+@ApiOperation({ summary: 'Get any order detail - Admin only' })
+async getAdminOrderDetail(@Param('id') orderId: string) {
+  const data = await this.ordersService.getAdminOrderDetail(orderId);
+  return { data };
+}
 }
