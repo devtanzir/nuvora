@@ -31,6 +31,26 @@ async function main() {
     console.log('ADMIN || EXISTS || SKIPPED');
   }
 
+  const normalEmail = 'johndoe@gmail.com';
+const existingNormal = await prisma.user.findUnique({ where: { email: normalEmail } });
+
+if (!existingNormal) {
+  const hashedPassword = await bcrypt.hash('User123!', 10);
+  await prisma.user.create({
+    data: {
+      name: 'John Doe',
+      email: normalEmail,
+      password: hashedPassword,
+      role: Role.USER,
+      emailVerified: true,
+      isActive: true,
+    },
+  });
+  console.log('USER || CREATED || SUCCESS');
+} else {
+  console.log('USER || EXISTS || SKIPPED');
+}
+
   console.log('SEEDING || COMPLETE');
 }
 
