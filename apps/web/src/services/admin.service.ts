@@ -439,4 +439,17 @@ processRefund: async (orderId: string, data: { action: 'APPROVE' | 'REJECT' }) =
   const res = await api.post(`/orders/admin/${orderId}/refund`, data);
   return res.data.data;
 },
+getPendingRefunds: async () => {
+  const res = await api.get<ApiResponse<{
+    refunds: {
+      id: string;
+      orderId: string;
+      orderNumber: string | null;
+      reason: string;
+      createdAt: string;
+      customer: { name: string; email: string };
+    }[];
+  }>>('/admin/dashboard/pending-refunds');
+  return res.data.data;
+},
 };

@@ -111,10 +111,22 @@ export class AdminController {
     @Param('id') userId: string,
     @Body() body: { isActive: boolean },
   ) {
-    const data = await this.adminService.updateUserStatus(userId, body.isActive);
+    const data = await this.adminService.updateUserStatus(
+      userId,
+      body.isActive,
+    );
     const message = body.isActive
       ? 'User activated successfully'
       : 'User deactivated successfully';
     return { message, data };
+  }
+  @Get('dashboard/pending-refunds')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Pending refund requests' })
+  async getPendingRefunds() {
+    const data = await this.adminService.getPendingRefunds();
+    return { data };
   }
 }

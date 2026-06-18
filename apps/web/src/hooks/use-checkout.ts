@@ -16,6 +16,7 @@ export interface CheckoutState {
   promoDiscountType: string;
   clientSecret: string | null;
   orderId: string | null;
+  orderNumber: string | null;
   breakdown: {
     subtotal: number;
     discount: number;
@@ -34,6 +35,7 @@ export function useCheckout() {
     promoDiscountType: '',
     clientSecret: null,
     orderId: null,
+    orderNumber: null,
     breakdown: null,
   });
 
@@ -45,11 +47,7 @@ export function useCheckout() {
   const setAddress = (address: Address) =>
     setState((prev) => ({ ...prev, selectedAddress: address }));
 
-  const setPromo = (
-    code: string,
-    discount: number,
-    discountType: string,
-  ) =>
+  const setPromo = (code: string, discount: number, discountType: string) =>
     setState((prev) => ({
       ...prev,
       promoCode: code,
@@ -96,35 +94,36 @@ export function useCheckout() {
   };
 
   // Called after Stripe payment success
-const onPaymentSuccess = async (paymentIntentId: string) => {
-  if (!state.selectedAddress?.id) return;
+  const onPaymentSuccess = async (paymentIntentId: string) => {
+    if (!state.selectedAddress?.id) return;
 
-  setIsLoading(true);
-  try {
-    const order = await orderService.createOrder({
-      addressId: state.selectedAddress.id,
-      promoCode: state.promoCode || undefined,
-      stripePaymentId: paymentIntentId,
-    });
+    setIsLoading(true);
+    try {
+      const order = await orderService.createOrder({
+        addressId: state.selectedAddress.id,
+        promoCode: state.promoCode || undefined,
+        stripePaymentId: paymentIntentId,
+      });
 
-    setState((prev) => ({
-      ...prev,
-      orderId: order?.id ?? paymentIntentId,
-      step: 'confirmation',
-    }));
+      setState((prev) => ({
+        ...prev,
+        orderId: order?.id ?? paymentIntentId,
+        orderNumber: order?.orderNumber ?? null,
+        step: 'confirmation',
+      }));
 
-    clearCart();
-  } catch {
-    setState((prev) => ({
-      ...prev,
-      orderId: paymentIntentId,
-      step: 'confirmation',
-    }));
-    clearCart();
-  } finally {
-    setIsLoading(false);
-  }
-};
+      clearCart();
+    } catch {
+      setState((prev) => ({
+        ...prev,
+        orderId: paymentIntentId,
+        step: 'confirmation',
+      }));
+      clearCart();
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return {
     state,

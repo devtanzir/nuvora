@@ -156,7 +156,7 @@ export function AdminPromoCodesContent() {
       </div>
 
       {/* Table */}
-      <div className="rounded-xl border border-border overflow-hidden">
+      <div className="rounded-xl border border-border overflow-hidden overflow-x-auto">
         <table className="w-full">
           <thead className="bg-muted/50">
             <tr>

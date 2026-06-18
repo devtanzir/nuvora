@@ -502,4 +502,35 @@ export class AdminService {
 
     return updated;
   }
+
+  async getPendingRefunds() {
+  const refunds = await this.prisma.refundRequest.findMany({
+    where: { status: 'PENDING' },
+    take: 5,
+    orderBy: { createdAt: 'desc' },
+    include: {
+      order: {
+        select: {
+          id: true,
+          orderNumber: true,
+          user: { select: { name: true, email: true } },
+        },
+      },
+    },
+  });
+
+  return {
+    refunds: refunds.map((r) => ({
+      id: r.id,
+      orderId: r.orderId,
+      orderNumber: r.order.orderNumber,
+      reason: r.reason,
+      createdAt: r.createdAt,
+      customer: {
+        name: r.order.user.name,
+        email: r.order.user.email,
+      },
+    })),
+  };
+}
 }

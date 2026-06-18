@@ -65,6 +65,11 @@ export function DashboardContent() {
     queryFn: () => adminService.getLowStock(10),
   });
 
+  const { data: pendingRefunds } = useQuery({
+    queryKey: ['admin', 'pending-refunds'],
+    queryFn: () => adminService.getPendingRefunds(),
+  });
+
   const statCards = overview
     ? [
         {
@@ -287,6 +292,35 @@ export function DashboardContent() {
             </p>
           )}
         </div>
+
+        {pendingRefunds && pendingRefunds.refunds.length > 0 && (
+          <div className="p-5 rounded-xl border border-border bg-card">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-playfair font-bold text-navy dark:text-white">
+                Pending Refunds
+              </h2>
+            </div>
+            <div className="space-y-3">
+              {pendingRefunds.refunds.map((refund) => (
+                <Link key={refund.id} href={ROUTES.ADMIN_ORDER(refund.orderId)}>
+                  <div className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 transition-colors">
+                    <div>
+                      <p className="text-sm font-medium">
+                        Order #{refund.orderNumber ?? refund.orderId.slice(-8)}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {refund.customer.name} - {refund.reason}
+                      </p>
+                    </div>
+                    <span className="text-xs text-muted-foreground">
+                      {formatDate(refund.createdAt)}
+                    </span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Low Stock */}
         <div className="p-5 rounded-xl border border-border bg-card">

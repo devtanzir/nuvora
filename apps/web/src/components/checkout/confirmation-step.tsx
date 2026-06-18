@@ -8,9 +8,10 @@ import { ROUTES } from '@/constants/routes';
 
 interface ConfirmationStepProps {
   orderId: string;
+  orderNumber?: string | null;
 }
 
-export function ConfirmationStep({ orderId }: ConfirmationStepProps) {
+export function ConfirmationStep({ orderId, orderNumber }: ConfirmationStepProps) {
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
@@ -42,9 +43,9 @@ export function ConfirmationStep({ orderId }: ConfirmationStepProps) {
 
       {/* Order ID */}
       <div className="p-4 rounded-xl bg-muted/30 border border-border inline-block">
-        <p className="text-xs text-muted-foreground mb-1">Payment Reference</p>
+        <p className="text-xs text-muted-foreground mb-1">Order Number</p>
         <p className="text-sm font-mono font-medium text-navy dark:text-white">
-          {orderId}
+          {orderNumber ?? orderId}
         </p>
       </div>
 

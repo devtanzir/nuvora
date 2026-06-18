@@ -39,6 +39,7 @@ export interface Order {
   id: string;
   status: OrderStatus;
   subtotal: number;
+  orderNumber: string | null;
   discount: number;
   total: number;
   itemCount: number;
