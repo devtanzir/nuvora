@@ -55,7 +55,13 @@ export function ProductDetailContent({ slug }: ProductDetailContentProps) {
 
   useEffect(() => {
     if (product) {
-      addProduct(product);
+      addProduct({
+        id: product.id,
+        name: product.name,
+        slug: product.slug,
+        price: product.price,
+        primaryImage: product.images?.[0]?.url ?? null,
+      });
     }
     if (product && product.variants.length > 0) {
       // If a variant is already selected and still exists, keep it

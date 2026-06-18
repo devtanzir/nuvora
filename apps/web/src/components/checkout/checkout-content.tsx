@@ -151,7 +151,7 @@ export function CheckoutContent() {
                 )}
 
               {state.step === 'confirmation' && state.orderId && (
-                <ConfirmationStep orderId={state.orderId} />
+                <ConfirmationStep orderId={state.orderId} orderNumber={state.orderNumber} />
               )}
             </motion.div>
           </AnimatePresence>

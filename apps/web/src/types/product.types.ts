@@ -61,3 +61,11 @@ export interface ProductFilters {
   inStock?: boolean;
   sortBy?: SortOption;
 }
+
+export interface RecentlyViewedProduct {
+  id: string;
+  name: string;
+  slug: string;
+  price: number;
+  primaryImage: string | null;
+}

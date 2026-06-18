@@ -31,9 +31,9 @@ export function RecentlyViewedSection() {
             <Link key={product.id} href={ROUTES.PRODUCT(product.slug)}>
               <div className="group space-y-2">
                 <div className="aspect-square rounded-xl overflow-hidden bg-muted border border-border hover:border-gold/50 transition-all">
-                  {product.primaryImage ? (
+                  {product?.primaryImage ? (
                     <Image
-                      src={product.primaryImage}
+                      src={product?.primaryImage}
                       alt={product.name}
                       width={150}
                       height={150}

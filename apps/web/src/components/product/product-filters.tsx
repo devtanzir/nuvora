@@ -92,8 +92,9 @@ export function ProductFilters({ categories }: ProductFiltersProps) {
         <div className="space-y-2">
           {PRICE_RANGES.map((range) => {
   const isActive =
-    filters.minPrice === range.min &&
-    filters.maxPrice === range.max;
+    filters.minPrice === range.min * 100 &&
+    filters.maxPrice ===
+      (range.max !== undefined ? range.max * 100 : undefined);
 
   return (
     <div key={range.label} className="flex items-center gap-2">
@@ -103,8 +104,8 @@ export function ProductFilters({ categories }: ProductFiltersProps) {
         onCheckedChange={(checked) => {
           if (checked) {
             setFilters({
-              minPrice: range.min,
-              maxPrice: range.max,
+              minPrice: range.min * 100,
+              maxPrice: range.max ? range.max * 100 : undefined,
             });
           } else {
             setFilters({
