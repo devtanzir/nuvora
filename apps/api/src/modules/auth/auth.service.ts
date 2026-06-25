@@ -164,11 +164,11 @@ export class AuthService {
       },
     });
 
-    // httpOnly cookie will be set
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
-      secure: this.configService.get('NODE_ENV') === 'production',
-      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      path: '/',
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
@@ -235,8 +235,9 @@ export class AuthService {
 
     res.cookie('refreshToken', newRefreshToken, {
       httpOnly: true,
-      secure: this.configService.get('NODE_ENV') === 'production',
-      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      path: '/',
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
@@ -355,80 +356,84 @@ export class AuthService {
   // Google OAuth
   // ============================================================
 
-async googleLogin(googleUser: any, res: any) {
-  let user = await this.prisma.user.findUnique({
-    where: { email: googleUser.email },
-  });
+  async googleLogin(googleUser: any, res: any) {
+    let user = await this.prisma.user.findUnique({
+      where: { email: googleUser.email },
+    });
 
-  if (!user) {
-    user = await this.prisma.user.create({
+    if (!user) {
+      user = await this.prisma.user.create({
+        data: {
+          name: googleUser.name,
+          email: googleUser.email,
+          avatar: googleUser.avatar,
+          googleId: googleUser.googleId,
+          emailVerified: true,
+        },
+      });
+    } else if (!user.googleId) {
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: { googleId: googleUser.googleId },
+      });
+    }
+
+    const { accessToken, refreshToken } = this.generateTokens(
+      user.id,
+      user.role,
+    );
+
+    // Save hashed refresh token in DB
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    await this.prisma.refreshToken.create({
       data: {
-        name: googleUser.name,
-        email: googleUser.email,
-        avatar: googleUser.avatar,
-        googleId: googleUser.googleId,
-        emailVerified: true,
+        userId: user.id,
+        token: this.hashToken(refreshToken),
+        expiresAt,
       },
     });
-  } else if (!user.googleId) {
-    await this.prisma.user.update({
-      where: { id: user.id },
-      data: { googleId: googleUser.googleId },
+
+    // Set refresh token cookie
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      path: '/',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
     });
+
+    // Generate single-use code for access token exchange
+    const oauthCode = crypto.randomBytes(32).toString('hex');
+    const codeExpiresAt = new Date(Date.now() + 60 * 1000); // 1 minute
+
+    await this.prisma.oAuthCode.create({
+      data: {
+        code: oauthCode,
+        accessToken,
+        expiresAt: codeExpiresAt,
+      },
+    });
+
+    // Redirect to frontend with only the code
+    res.redirect(
+      `${this.configService.get('CLIENT_URL')}/auth/callback?code=${oauthCode}`,
+    );
   }
+  async exchangeOAuthCode(code: string) {
+    const record = await this.prisma.oAuthCode.findUnique({
+      where: { code },
+    });
 
-  const { accessToken, refreshToken } = this.generateTokens(user.id, user.role);
+    if (!record || record.used || record.expiresAt < new Date()) {
+      throw new BadRequestException('Invalid or expired code');
+    }
 
-  // Save hashed refresh token in DB
-  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-  await this.prisma.refreshToken.create({
-    data: {
-      userId: user.id,
-      token: this.hashToken(refreshToken),
-      expiresAt,
-    },
-  });
+    // Mark as used (or delete)
+    await this.prisma.oAuthCode.update({
+      where: { id: record.id },
+      data: { used: true },
+    });
 
-  // Set refresh token cookie
-  res.cookie('refreshToken', refreshToken, {
-    httpOnly: true,
-    secure: this.configService.get('NODE_ENV') === 'production',
-    sameSite: 'lax',
-    maxAge: 7 * 24 * 60 * 60 * 1000,
-  });
-
-  // Generate single-use code for access token exchange
-  const oauthCode = crypto.randomBytes(32).toString('hex');
-  const codeExpiresAt = new Date(Date.now() + 60 * 1000); // 1 minute
-
-  await this.prisma.oAuthCode.create({
-    data: {
-      code: oauthCode,
-      accessToken,
-      expiresAt: codeExpiresAt,
-    },
-  });
-
-  // Redirect to frontend with only the code
-  res.redirect(
-    `${this.configService.get('CLIENT_URL')}/auth/callback?code=${oauthCode}`,
-  );
-}
-async exchangeOAuthCode(code: string) {
-  const record = await this.prisma.oAuthCode.findUnique({
-    where: { code },
-  });
-
-  if (!record || record.used || record.expiresAt < new Date()) {
-    throw new BadRequestException('Invalid or expired code');
+    return { accessToken: record.accessToken };
   }
-
-  // Mark as used (or delete)
-  await this.prisma.oAuthCode.update({
-    where: { id: record.id },
-    data: { used: true },
-  });
-
-  return { accessToken: record.accessToken };
-}
 }
