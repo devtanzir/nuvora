@@ -3,7 +3,6 @@
 /node_modules
 /build
 prisma.config.js
-tsconfig.build.tsbuildinfo
 
 # Logs
 logs
