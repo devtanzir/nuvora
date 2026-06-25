@@ -1,62 +1,90 @@
-import { MailerService } from '@nestjs-modules/mailer';
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import axios from 'axios';
 
 @Injectable()
 export class MailService {
   private readonly logger = new Logger(MailService.name);
+  private readonly apiKey: string;
 
-  constructor(private readonly mailerService: MailerService) {}
+  constructor(private readonly configService: ConfigService) {
+    this.apiKey = this.configService.getOrThrow('BREVO_API_KEY');
+  }
 
-  async sendVerificationEmail(
-    email: string,
-    name: string,
-    token: string,
-    clientUrl: string,
+  private async sendEmail(
+    to: string,
+    subject: string,
+    htmlContent: string,
   ) {
-    const verificationUrl = `${clientUrl}/verify-email?token=${token}`;
     try {
-      await this.mailerService.sendMail({
-        to: email,
-        subject: 'Verify your email - Nuvora',
-        template: 'verify-email',
-        context: {
-          name,
-          verificationUrl,
+      await axios.post(
+        'https://api.brevo.com/v3/smtp/email',
+        {
+          sender: {
+            name: 'Nuvora',
+            email: 'nuvora.ecomerce@gmail.com', // verified sender in Brevo
+          },
+          to: [{ email: to }],
+          subject,
+          htmlContent,
         },
-      });
-      this.logger.log(`Verification email sent to ${email}`);
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : String(error);
-      this.logger.error(
-        `Failed to send verification email to ${email}: ${message}`,
+        {
+          headers: {
+            'api-key': this.apiKey,
+            'Content-Type': 'application/json',
+          },
+        },
       );
+      this.logger.log(`Email sent to ${to}`);
+    } catch (error) {
+      this.logger.error(`Failed to send email to ${to}: ${error.response?.data?.message ?? error.message}`);
     }
   }
 
-  async sendPasswordResetEmail(
+  async sendVerificationEmail(email: string, name: string, token: string, clientUrl: string) {
+    const verificationUrl = `${clientUrl}/verify-email?token=${token}`;
+    const html = `
+      <h2>Hi ${name},</h2>
+      <p>Thanks for registering at Nuvora. Please verify your email by clicking the button below.</p>
+      <a href="${verificationUrl}" style="display: inline-block; padding: 12px 24px; background-color: #1B2D4F; color: #fff; text-decoration: none; border-radius: 6px;">Verify Email</a>
+      <p style="margin-top: 16px; color: #666;">This link will expire in 24 hours.</p>
+    `;
+    await this.sendEmail(email, 'Verify your email - Nuvora', html);
+  }
+
+  async sendPasswordResetEmail(email: string, name: string, token: string, clientUrl: string) {
+    const resetUrl = `${clientUrl}/reset-password?token=${token}`;
+    const html = `
+      <h2>Hi ${name},</h2>
+      <p>We received a request to reset your password. Click the button below to reset it.</p>
+      <a href="${resetUrl}" style="display: inline-block; padding: 12px 24px; background-color: #1B2D4F; color: #fff; text-decoration: none; border-radius: 6px;">Reset Password</a>
+      <p style="margin-top: 16px; color: #666;">This link will expire in 1 hour.</p>
+    `;
+    await this.sendEmail(email, 'Reset your password - Nuvora', html);
+  }
+
+  async sendOrderConfirmationEmail(
     email: string,
     name: string,
-    token: string,
-    clientUrl: string,
+    orderNumber: string,
+    items: { productName: string; quantity: number; price: string }[],
+    total: number,
   ) {
-    const resetUrl = `${clientUrl}/reset-password?token=${token}`;
-    try {
-      await this.mailerService.sendMail({
-        to: email,
-        subject: 'Reset your password - Nuvora',
-        template: 'reset-password',
-        context: {
-          name,
-          resetUrl,
-        },
-      });
-      this.logger.log(`Password reset email sent to ${email}`);
-    } catch (error: unknown) {
-       const message = error instanceof Error ? error.message : String(error);
-      this.logger.error(
-        `Failed to send password reset email to ${email}: ${message}`,
-      );
-    }
+    const itemsHtml = items
+      .map(
+        (item) => `<tr><td>${item.productName}</td><td>${item.quantity}</td><td>$${item.price}</td></tr>`,
+      )
+      .join('');
+    const html = `
+      <h2>Hi ${name},</h2>
+      <p>Thank you for your order! Your order <strong>${orderNumber}</strong> has been placed.</p>
+      <table style="width:100%; border-collapse:collapse;">
+        <tr style="background:#f0f0f0;"><th>Item</th><th>Qty</th><th>Price</th></tr>
+        ${itemsHtml}
+      </table>
+      <p style="text-align:right; font-weight:bold;">Total: $${(total / 100).toFixed(2)}</p>
+    `;
+    await this.sendEmail(email, `Order Confirmation - ${orderNumber}`, html);
   }
 
   async sendOrderStatusEmail(
@@ -66,46 +94,12 @@ export class MailService {
     newStatus: string,
     trackingNumber?: string,
   ) {
-    const subject = `Your order ${orderId} is now ${newStatus}`;
-    try {
-      await this.mailerService.sendMail({
-        to: email,
-        subject,
-        template: 'order-status',
-        context: { name, orderId, status: newStatus, trackingNumber },
-      });
-      this.logger.log(`Order status email sent to ${email} for order ${orderId}`);
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : String(error);
-      this.logger.error(
-        `Failed to send order status email to ${email}: ${message}`,
-      );
-    }
+    const tracking = trackingNumber ? `<p>Tracking number: ${trackingNumber}</p>` : '';
+    const html = `
+      <h2>Hi ${name},</h2>
+      <p>Your order <strong>${orderId}</strong> status has been updated to <strong>${newStatus}</strong>.</p>
+      ${tracking}
+    `;
+    await this.sendEmail(email, `Your order ${orderId} is now ${newStatus}`, html);
   }
-
-async sendOrderConfirmationEmail(
-  email: string,
-  name: string,
-  orderNumber: string,
-  items: { productName: string; quantity: number; price: string }[],
-  total: number, // still in cents
-) {
-  try {
-    await this.mailerService.sendMail({
-      to: email,
-      subject: `Order Confirmation - ${orderNumber}`,
-      template: 'order-confirmation',
-      context: {
-        name,
-        orderNumber,
-        items,
-        total: (total / 100).toFixed(2),
-      },
-    });
-    this.logger.log(`Order confirmation email sent to ${email}`);
-  } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : String(error);
-    this.logger.error(`Failed to send order confirmation email: ${message}`);
-  }
-}
 }
