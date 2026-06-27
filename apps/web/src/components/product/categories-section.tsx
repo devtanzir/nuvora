@@ -15,6 +15,7 @@ export function CategoriesSection() {
     queryKey: QUERY_KEYS.CATEGORIES,
     queryFn: productService.getCategories,
   });
+  const visibleCategories = categories?.filter(cat => cat.productCount > 0) ?? [];
   return (
     <section className="py-20 bg-background">
       <div className="container mx-auto px-4">
@@ -42,7 +43,7 @@ export function CategoriesSection() {
             ? Array.from({ length: 4 }).map((_, i) => (
                 <Skeleton key={i} className="h-48 rounded-xl" />
               ))
-            : categories?.map((category, index) => (
+            : visibleCategories.map((category, index) => (
                 <motion.div
                   key={category.id}
                   initial={{ opacity: 0, y: 20 }}

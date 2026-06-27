@@ -9,10 +9,13 @@ import { Product } from '@/types/product.types';
 import { ROUTES } from '@/constants/routes';
 import { formatPrice, getDiscountPercent } from '@/lib/utils';
 import { useAddToCart } from '@/hooks/use-cart';
-import { useAddToWishlist } from '@/hooks/use-wishlist';
+import {
+  useWishlist,
+  useAddToWishlist,
+  useRemoveFromWishlist,
+} from '@/hooks/use-wishlist';
 import { useAuthStore } from '@/store/auth.store';
 import { useUIStore } from '@/store/ui.store';
-
 interface ProductCardProps {
   product: Product;
 }
@@ -22,11 +25,12 @@ export function ProductCard({ product }: ProductCardProps) {
   const { openLoginModal } = useUIStore();
   const { mutate: addToCart, isPending: isAddingToCart } = useAddToCart();
   const { mutate: addToWishlist } = useAddToWishlist();
+  const { mutate: removeFromWishlist, isPending: isRemoving } =
+    useRemoveFromWishlist();
 
-  const discountPercent =
-    product.originalPrice
-      ? getDiscountPercent(product.originalPrice, product.price)
-      : null;
+  const discountPercent = product.originalPrice
+    ? getDiscountPercent(product.originalPrice, product.price)
+    : null;
 
   const handleAddToCart = () => {
     if (!isAuthenticated) {
@@ -36,13 +40,24 @@ export function ProductCard({ product }: ProductCardProps) {
     addToCart({ productId: product.id, quantity: 1 });
   };
 
-  const handleAddToWishlist = (e: React.MouseEvent) => {
+  const { data: wishlistData } = useWishlist();
+  const wishlistProductIds = new Set(
+    wishlistData?.items?.map((item) => item.product.id) ?? [],
+  );
+
+  const isInWishlist = wishlistProductIds.has(product.id);
+
+  const handleWishlistToggle = (e: React.MouseEvent) => {
     e.preventDefault();
     if (!isAuthenticated) {
       openLoginModal();
       return;
     }
-    addToWishlist(product.id);
+    if (isInWishlist) {
+      removeFromWishlist(product.id);
+    } else {
+      addToWishlist(product.id);
+    }
   };
 
   return (
@@ -83,9 +98,12 @@ export function ProductCard({ product }: ProductCardProps) {
             variant="ghost"
             size="icon"
             className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity bg-white/80 dark:bg-black/80 hover:bg-white dark:hover:bg-black rounded-full h-8 w-8 cursor-pointer"
-            onClick={handleAddToWishlist}
+            onClick={handleWishlistToggle}
+            disabled={isRemoving || isAddingToCart}
           >
-            <Heart className="h-4 w-4" />
+            <Heart
+              className={`h-4 w-4 ${isInWishlist ? 'fill-gold text-gold' : ''}`}
+            />
           </Button>
         </div>
       </Link>

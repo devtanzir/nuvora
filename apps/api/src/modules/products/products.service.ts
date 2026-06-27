@@ -50,7 +50,7 @@ export class ProductsService {
     };
 
     if (search) {
-      where.name = { contains: search };
+      where.name = { contains: search, mode: 'insensitive' };
     }
 
     if (categorySlug) {
@@ -127,7 +127,7 @@ export class ProductsService {
       originalPrice: p.originalPrice,
       avgRating: p.avgRating ?? 0,
       reviewCount: p.reviewCount,
-      stock: p.totalStock ?? 0,
+      totalStock: p.totalStock ?? 0,
       isActive: p.isActive,
       category: p.category,
       primaryImage: p.images[0]?.url ?? null,
@@ -206,7 +206,7 @@ export class ProductsService {
     const { page = 1, limit = 20, search, categorySlug } = query;
 
     const where: any = { isDeleted: false };
-    if (search) where.name = { contains: search };
+    if (search) where.name = { contains: search, mode: 'insensitive' };
     if (categorySlug) where.category = { slug: categorySlug };
 
     const [products, total] = await Promise.all([
@@ -246,7 +246,7 @@ export class ProductsService {
         isActive: p.isActive,
         avgRating: p.avgRating ?? 0,
         reviewCount: p.reviewCount,
-        stock: p.totalStock ?? 0,
+        totalStock: p.totalStock ?? 0,
         category: p.category,
         primaryImage: p.images[0]?.url ?? null,
       })),

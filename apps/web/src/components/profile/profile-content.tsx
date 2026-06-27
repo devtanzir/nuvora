@@ -102,16 +102,18 @@ export function ProfileContent() {
     },
   });
 
-  const { mutate: changePassword, isPending: isChangingPassword } = useMutation({
-    mutationFn: userService.changePassword,
-    onSuccess: () => {
-      toast.success('Password changed successfully');
-      resetPassword();
+  const { mutate: changePassword, isPending: isChangingPassword } = useMutation(
+    {
+      mutationFn: userService.changePassword,
+      onSuccess: () => {
+        toast.success('Password changed successfully');
+        resetPassword();
+      },
+      onError: (error: unknown) => {
+        toast.error(getErrorMessage(error, 'Failed to change password'));
+      },
     },
-    onError: (error: unknown) => {
-      toast.error(getErrorMessage(error, 'Failed to change password'));
-    },
-  });
+  );
 
   const { mutate: createAddress, isPending: isCreatingAddress } = useMutation({
     mutationFn: userService.createAddress,
@@ -205,34 +207,36 @@ export function ProfileContent() {
         <div className="container mx-auto px-4 py-8">
           <div className="flex items-center gap-4">
             {/* Avatar with upload */}
-<div className="relative w-16 h-16">
-  <label htmlFor="avatar-upload" className="cursor-pointer block">
-    <Avatar className="h-16 w-16 border-2 border-gold">
-      <AvatarImage src={user?.avatar ?? ''} />
-      <AvatarFallback className="bg-navy text-white text-xl">
-        {user?.name?.charAt(0).toUpperCase()}
-      </AvatarFallback>
-    </Avatar>
-    <div className={cn(
-      'absolute bottom-0 right-0 h-5 w-5 rounded-full bg-gold flex items-center justify-center',
-      isUploadingAvatar && 'opacity-50',
-    )}>
-      {isUploadingAvatar ? (
-        <Loader2 className="h-3 w-3 text-navy animate-spin" />
-      ) : (
-        <Camera className="h-3 w-3 text-navy" />
-      )}
-    </div>
-  </label>
-  <input
-    id="avatar-upload"
-    type="file"
-    accept="image/jpeg,image/png,image/webp"
-    className="hidden"
-    onChange={handleAvatarUpload}
-    disabled={isUploadingAvatar}
-  />
-</div>
+            <div className="relative w-16 h-16">
+              <label htmlFor="avatar-upload" className="cursor-pointer block">
+                <Avatar className="h-16 w-16 border-2 border-gold">
+                  <AvatarImage src={user?.avatar ?? ''} />
+                  <AvatarFallback className="bg-navy text-white text-xl">
+                    {user?.name?.charAt(0).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <div
+                  className={cn(
+                    'absolute bottom-0 right-0 h-5 w-5 rounded-full bg-gold flex items-center justify-center',
+                    isUploadingAvatar && 'opacity-50',
+                  )}
+                >
+                  {isUploadingAvatar ? (
+                    <Loader2 className="h-3 w-3 text-navy animate-spin" />
+                  ) : (
+                    <Camera className="h-3 w-3 text-navy" />
+                  )}
+                </div>
+              </label>
+              <input
+                id="avatar-upload"
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="hidden"
+                onChange={handleAvatarUpload}
+                disabled={isUploadingAvatar}
+              />
+            </div>
 
             <div>
               <h1 className="text-2xl font-playfair font-bold text-navy dark:text-white">
@@ -254,7 +258,15 @@ export function ProfileContent() {
               { value: 'profile', label: 'Profile', icon: User },
               { value: 'addresses', label: 'Addresses', icon: MapPin },
               { value: 'security', label: 'Security', icon: Lock },
-              { value: 'notifications', label: 'Notifications', icon: Bell },
+              ...(notifications && notifications.notifications.length > 0
+                ? [
+                    {
+                      value: 'notifications',
+                      label: 'Notifications',
+                      icon: Bell,
+                    },
+                  ]
+                : []),
             ].map(({ value, label, icon: Icon }) => (
               <TabsTrigger
                 key={value}
@@ -280,10 +292,7 @@ export function ProfileContent() {
               >
                 <div className="space-y-2">
                   <Label>Full Name</Label>
-                  <Input
-                    placeholder="Your name"
-                    {...registerProfile('name')}
-                  />
+                  <Input placeholder="Your name" {...registerProfile('name')} />
                   {profileErrors.name && (
                     <p className="text-sm text-destructive">
                       {profileErrors.name.message}
@@ -297,21 +306,6 @@ export function ProfileContent() {
                   <p className="text-xs text-muted-foreground">
                     Email cannot be changed
                   </p>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Role</Label>
-                  <div>
-                    <Badge
-                      className={
-                        user?.role === 'ADMIN'
-                          ? 'bg-gold text-navy'
-                          : 'bg-muted text-muted-foreground'
-                      }
-                    >
-                      {user?.role}
-                    </Badge>
-                  </div>
                 </div>
 
                 <Button
@@ -534,8 +528,7 @@ export function ProfileContent() {
                     <Skeleton key={i} className="h-16 rounded-xl" />
                   ))}
                 </div>
-              ) : !notifications ||
-                notifications.notifications.length === 0 ? (
+              ) : !notifications || notifications.notifications.length === 0 ? (
                 <div className="text-center py-12">
                   <Bell className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
                   <p className="text-muted-foreground">No notifications yet</p>
@@ -558,7 +551,7 @@ export function ProfileContent() {
                             {notification.title}
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            {notification.message}
+                            {notification.body}
                           </p>
                         </div>
                         {!notification.isRead && (
@@ -636,10 +629,7 @@ export function ProfileContent() {
               </div>
               <div className="space-y-2">
                 <Label>District</Label>
-                <Input
-                  placeholder="Dhaka"
-                  {...registerAddress('district')}
-                />
+                <Input placeholder="Dhaka" {...registerAddress('district')} />
                 {addressErrors.district && (
                   <p className="text-xs text-destructive">
                     {addressErrors.district.message}
@@ -648,10 +638,7 @@ export function ProfileContent() {
               </div>
               <div className="space-y-2">
                 <Label>Postal Code</Label>
-                <Input
-                  placeholder="1216"
-                  {...registerAddress('postalCode')}
-                />
+                <Input placeholder="1216" {...registerAddress('postalCode')} />
                 {addressErrors.postalCode && (
                   <p className="text-xs text-destructive">
                     {addressErrors.postalCode.message}

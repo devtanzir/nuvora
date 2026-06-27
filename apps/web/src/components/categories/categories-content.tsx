@@ -16,6 +16,8 @@ export function CategoriesContent() {
     queryFn: productService.getCategories,
   });
 
+  const visibleCategories = categories?.filter(cat => cat.productCount > 0) ?? [];
+
   return (
     <div className="min-h-screen bg-background">
       <div className="bg-muted/30 border-b border-border">
@@ -41,7 +43,7 @@ export function CategoriesContent() {
           </div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {categories?.map((category, index) => (
+            {visibleCategories.map((category, index) => (
               <motion.div
                 key={category.id}
                 initial={{ opacity: 0, y: 20 }}

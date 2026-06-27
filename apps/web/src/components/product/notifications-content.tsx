@@ -146,7 +146,7 @@ export function NotificationsContent() {
                       {notification.title}
                     </p>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      {notification.message}
+                      {notification.body}
                     </p>
                   </div>
                   {isUnread && (

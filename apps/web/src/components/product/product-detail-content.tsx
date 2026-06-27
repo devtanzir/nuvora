@@ -1,3 +1,4 @@
+// apps/web/src/components/product/ProductDetailContent.tsx
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -24,7 +25,11 @@ import { ReviewList } from '@/components/product/review-list';
 import { ProductCard } from '@/components/product/product-card';
 import { useProduct, useReviewSummary } from '@/hooks/use-product';
 import { useAddToCart } from '@/hooks/use-cart';
-import { useAddToWishlist } from '@/hooks/use-wishlist';
+import {
+  useAddToWishlist,
+  useRemoveFromWishlist,
+  useWishlist,
+} from '@/hooks/use-wishlist';
 import { useAuthStore } from '@/store/auth.store';
 import { useUIStore } from '@/store/ui.store';
 import { formatPrice, getDiscountPercent } from '@/lib/utils';
@@ -48,11 +53,19 @@ export function ProductDetailContent({ slug }: ProductDetailContentProps) {
   const { mutate: addToCart, isPending: isAddingToCart } = useAddToCart();
   const { mutate: addToWishlist, isPending: isAddingToWishlist } =
     useAddToWishlist();
+  const { mutate: removeFromWishlist, isPending: isRemoving } =
+    useRemoveFromWishlist();
   const { isAuthenticated } = useAuthStore();
   const { openLoginModal } = useUIStore();
-
   const { addProduct } = useRecentlyViewed();
 
+  // Filter out sentinel variant (name="default", value="default") so it's never shown to customers
+  const displayVariants =
+    product?.variants?.filter(
+      (v) => !(v.name === 'default' && v.value === 'default'),
+    ) ?? [];
+
+  // ── Effect 1: Recently viewed (independent) ──────────────────────
   useEffect(() => {
     if (product) {
       addProduct({
@@ -63,23 +76,30 @@ export function ProductDetailContent({ slug }: ProductDetailContentProps) {
         primaryImage: product.images?.[0]?.url ?? null,
       });
     }
-    if (product && product.variants.length > 0) {
-      // If a variant is already selected and still exists, keep it
-      if (
-        selectedVariant &&
-        product.variants.some((v) => v.id === selectedVariant.id)
-      ) {
-        return;
-      }
-      // Otherwise, select the first in-stock variant
-      const firstInStock = product.variants.find((v) => v.stock > 0);
-      if (firstInStock) {
-        setSelectedVariant(firstInStock);
-      } else {
-        // If all out of stock, you can still select the first one (or leave null)
-        setSelectedVariant(product.variants[0]);
-      }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [product]);
+
+  // ── Effect 2: Auto‑select first in‑stock real variant ──────────
+  useEffect(() => {
+    // No product or no real variants → nothing to select
+    if (!product || displayVariants.length === 0) {
+      setSelectedVariant(null);
+      return;
     }
+
+    // If the user already chose a variant that still exists, keep it
+    if (
+      selectedVariant &&
+      displayVariants.some((v) => v.id === selectedVariant.id)
+    ) {
+      return;
+    }
+
+    // Otherwise auto‑select the first in‑stock variant,
+    // or fallback to the first one if all are out of stock
+    const firstInStock = displayVariants.find((v) => v.stock > 0);
+    setSelectedVariant(firstInStock ?? displayVariants[0]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [product]);
 
   const handleAddToCart = () => {
@@ -87,23 +107,34 @@ export function ProductDetailContent({ slug }: ProductDetailContentProps) {
       openLoginModal();
       return;
     }
-    if (product?.variants.length && !selectedVariant) {
+    // Only require a selection when real variants exist
+    if (displayVariants.length > 0 && !selectedVariant) {
       toast.error('Please select a variant');
       return;
     }
     addToCart({
       productId: product!.id,
-      variantId: selectedVariant?.id,
+      variantId: selectedVariant?.id, // undefined → backend uses sentinel 'default'
       quantity,
     });
   };
+  const { data: wishlistData } = useWishlist();
+  const wishlistProductIds = new Set(
+    wishlistData?.items?.map((item) => item.product.id) ?? [],
+  );
 
-  const handleAddToWishlist = () => {
+  const isInWishlist = product ? wishlistProductIds.has(product.id) : false;
+
+  const handleWishlistToggle = () => {
     if (!isAuthenticated) {
       openLoginModal();
       return;
     }
-    addToWishlist(product!.id);
+    if (isInWishlist) {
+      removeFromWishlist(product!.id);
+    } else {
+      addToWishlist(product!.id);
+    }
   };
 
   if (isLoading) {
@@ -273,9 +304,9 @@ export function ProductDetailContent({ slug }: ProductDetailContentProps) {
             <Separator />
 
             {/* Variants */}
-            {product.variants.length > 0 && (
+            {displayVariants.length > 0 && (
               <ProductVariantSelector
-                variants={product.variants}
+                variants={displayVariants}
                 selectedVariant={selectedVariant}
                 onSelect={setSelectedVariant}
               />
@@ -313,7 +344,7 @@ export function ProductDetailContent({ slug }: ProductDetailContentProps) {
                   </Button>
                 </div>
                 <span className="text-sm text-muted-foreground">
-                  {product.variants.length > 0 && !selectedVariant
+                  {displayVariants.length > 0 && !selectedVariant
                     ? 'Select a variant first'
                     : `${currentStock} available`}
                 </span>
@@ -335,10 +366,12 @@ export function ProductDetailContent({ slug }: ProductDetailContentProps) {
                 size="lg"
                 variant="outline"
                 className="cursor-pointer"
-                onClick={handleAddToWishlist}
-                disabled={isAddingToWishlist}
+                onClick={handleWishlistToggle}
+                disabled={isAddingToWishlist || isRemoving}
               >
-                <Heart className="h-5 w-5" />
+                <Heart
+                  className={`h-5 w-5 ${isInWishlist ? 'fill-gold text-gold' : ''}`}
+                />
               </Button>
             </div>
 

@@ -7,7 +7,7 @@ export type UserNotification = {
   id: string;
   type: string;
   title: string;
-  message: string;
+  body: string;
   isRead: boolean;
   createdAt: string;
 };

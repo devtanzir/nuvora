@@ -4,8 +4,7 @@ export const ROUTES = {
   PRODUCTS: '/products',
   PRODUCT: (slug: string) => `/products/${slug}`,
   CATEGORIES: '/categories',
-  CATEGORY: (slug: string) => `/categories/${slug}`,
-
+CATEGORY: (slug: string) => `/products?category=${slug}`,
   // Auth
   LOGIN: '/login',
   REGISTER: '/register',

@@ -77,7 +77,6 @@ export function AdminProductsContent() {
       toast.error(getErrorMessage(error, 'Failed to update status'));
     },
   });
-
   return (
     <div className="p-6 space-y-6">
       {/* Header */}

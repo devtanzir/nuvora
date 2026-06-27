@@ -30,6 +30,19 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { adminService } from '@/services/admin.service';
 import { QUERY_KEYS } from '@/constants/query-keys';
 import { formatPrice, formatDate } from '@/lib/utils';
@@ -38,12 +51,17 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import getErrorMessage from '@/lib/error';
 import api from '@/lib/axios';
+import { Input } from '@/components/ui/input';
 
 const STATUS_COLORS: Record<string, string> = {
-  PENDING: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
-  PROCESSING: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-  SHIPPED: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
-  DELIVERED: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+  PENDING:
+    'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
+  PROCESSING:
+    'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+  SHIPPED:
+    'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
+  DELIVERED:
+    'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
   CANCELLED: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
   REFUNDED: 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400',
 };
@@ -52,16 +70,50 @@ interface AdminOrderDetailContentProps {
   orderId: string;
 }
 
-export function AdminOrderDetailContent({ orderId }: AdminOrderDetailContentProps) {
+export function AdminOrderDetailContent({
+  orderId,
+}: AdminOrderDetailContentProps) {
   const queryClient = useQueryClient();
   const [isRefundDialogOpen, setIsRefundDialogOpen] = useState(false);
 
+  const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
+  const [newStatus, setNewStatus] = useState('');
+  const [trackingNumber, setTrackingNumber] = useState('');
+
+  const validNextStatuses: Record<string, string[]> = {
+    PENDING: ['PROCESSING', 'CANCELLED'],
+    PROCESSING: ['SHIPPED'],
+    SHIPPED: ['DELIVERED'],
+    DELIVERED: [],
+    CANCELLED: [],
+    REFUNDED: [],
+  };
+
+  const { mutate: updateOrderStatus, isPending: isUpdatingStatus } =
+    useMutation({
+      mutationFn: () =>
+        adminService.updateOrderStatus(
+          orderId,
+          newStatus,
+          trackingNumber || undefined,
+        ),
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.ORDER(orderId) });
+        toast.success('Order status updated');
+        setIsStatusModalOpen(false);
+        setNewStatus('');
+        setTrackingNumber('');
+      },
+      onError: (error: unknown) => {
+        toast.error(getErrorMessage(error, 'Failed to update status'));
+      },
+    });
   // Fetch using admin-specific endpoint (no ownership check)
   const { data: order, isLoading } = useQuery({
     queryKey: QUERY_KEYS.ORDER(orderId),
     queryFn: () => adminService.getOrder(orderId),
   });
-
+  const currentValidTransitions = validNextStatuses[order?.status ?? ''] ?? [];
   // Process refund (approve)
   const { mutate: processRefund, isPending: isProcessingRefund } = useMutation({
     mutationFn: () =>
@@ -78,8 +130,7 @@ export function AdminOrderDetailContent({ orderId }: AdminOrderDetailContentProp
 
   // Reject refund
   const { mutate: rejectRefund, isPending: isRejecting } = useMutation({
-    mutationFn: () =>
-      adminService.processRefund(orderId, { action: 'REJECT' }),
+    mutationFn: () => adminService.processRefund(orderId, { action: 'REJECT' }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.ORDER(orderId) });
       toast.success('Refund request rejected');
@@ -131,7 +182,8 @@ export function AdminOrderDetailContent({ orderId }: AdminOrderDetailContentProp
     );
   }
 
-  const hasRefundRequest = order.status === 'DELIVERED' && !!order.refundRequest;
+  const hasRefundRequest =
+    order.status === 'DELIVERED' && !!order.refundRequest;
   const refundStatus = order.refundRequest?.status;
 
   return (
@@ -151,7 +203,12 @@ export function AdminOrderDetailContent({ orderId }: AdminOrderDetailContentProp
             {formatDate(order.createdAt)}
           </p>
         </div>
-        <Badge className={cn('text-sm font-medium border-0 px-3 py-1', STATUS_COLORS[order.status])}>
+        <Badge
+          className={cn(
+            'text-sm font-medium border-0 px-3 py-1',
+            STATUS_COLORS[order.status],
+          )}
+        >
           {order.status}
         </Badge>
       </div>
@@ -178,14 +235,22 @@ export function AdminOrderDetailContent({ orderId }: AdminOrderDetailContentProp
       <div className="p-5 rounded-xl border border-border bg-card space-y-4">
         <div className="flex items-center gap-2">
           <Package className="h-4 w-4 text-gold" />
-          <p className="font-medium text-navy dark:text-white">Items ({order.items.length})</p>
+          <p className="font-medium text-navy dark:text-white">
+            Items ({order.items.length})
+          </p>
         </div>
         <div className="space-y-4">
           {order.items.map((item) => (
             <div key={item.id} className="flex gap-4">
               <div className="h-16 w-16 rounded-lg overflow-hidden bg-muted border border-border shrink-0">
                 {item.primaryImage ? (
-                  <Image src={item.primaryImage} alt={item.productName} width={64} height={64} className="w-full h-full object-cover" />
+                  <Image
+                    src={item.primaryImage}
+                    alt={item.productName}
+                    width={64}
+                    height={64}
+                    className="w-full h-full object-cover"
+                  />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
                     <ShoppingBag className="h-6 w-6 text-muted-foreground/30" />
@@ -193,13 +258,21 @@ export function AdminOrderDetailContent({ orderId }: AdminOrderDetailContentProp
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium line-clamp-1">{item.productName}</p>
+                <p className="text-sm font-medium line-clamp-1">
+                  {item.productName}
+                </p>
                 {item.variantName && (
-                  <p className="text-xs text-muted-foreground">{item.variantName}: {item.variantValue}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {item.variantName}: {item.variantValue}
+                  </p>
                 )}
                 <div className="flex items-center justify-between mt-1">
-                  <p className="text-xs text-muted-foreground">Qty: {item.quantity} × {formatPrice(item.price)}</p>
-                  <p className="text-sm font-bold text-navy dark:text-white">{formatPrice(item.itemTotal)}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Qty: {item.quantity} × {formatPrice(item.price)}
+                  </p>
+                  <p className="text-sm font-bold text-navy dark:text-white">
+                    {formatPrice(item.itemTotal)}
+                  </p>
                 </div>
               </div>
             </div>
@@ -221,7 +294,9 @@ export function AdminOrderDetailContent({ orderId }: AdminOrderDetailContentProp
                 <Tag className="h-3 w-3" />
                 {order.promoCode?.code}
               </span>
-              <span className="text-green-600">-{formatPrice(order.discount)}</span>
+              <span className="text-green-600">
+                -{formatPrice(order.discount)}
+              </span>
             </div>
           )}
           <div className="flex justify-between text-sm">
@@ -235,7 +310,12 @@ export function AdminOrderDetailContent({ orderId }: AdminOrderDetailContentProp
           </div>
         </div>
         {order.stripeReceiptUrl && (
-          <a href={order.stripeReceiptUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-gold hover:underline mt-2">
+          <a
+            href={order.stripeReceiptUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 text-sm text-gold hover:underline mt-2"
+          >
             <ExternalLink className="h-3 w-3" />
             View Payment Receipt
           </a>
@@ -246,18 +326,28 @@ export function AdminOrderDetailContent({ orderId }: AdminOrderDetailContentProp
       <div className="p-5 rounded-xl border border-border bg-card space-y-3">
         <div className="flex items-center gap-2">
           <MapPin className="h-4 w-4 text-gold" />
-          <p className="font-medium text-navy dark:text-white">Delivery Address</p>
+          <p className="font-medium text-navy dark:text-white">
+            Delivery Address
+          </p>
         </div>
         <div className="space-y-1">
           <p className="text-sm font-medium">{order.address.fullName}</p>
           <p className="text-sm text-muted-foreground">{order.address.phone}</p>
-          <p className="text-sm text-muted-foreground">{order.address.street}, {order.address.city}, {order.address.district} {order.address.postalCode}</p>
+          <p className="text-sm text-muted-foreground">
+            {order.address.street}, {order.address.city},{' '}
+            {order.address.district} {order.address.postalCode}
+          </p>
         </div>
       </div>
 
       {/* Actions */}
       <div className="flex gap-3 flex-wrap">
-        <Button variant="outline" size="sm" className="cursor-pointer" onClick={handleDownloadInvoice}>
+        <Button
+          variant="outline"
+          size="sm"
+          className="cursor-pointer"
+          onClick={handleDownloadInvoice}
+        >
           <Download className="mr-2 h-4 w-4" />
           Download Invoice
         </Button>
@@ -273,19 +363,35 @@ export function AdminOrderDetailContent({ orderId }: AdminOrderDetailContentProp
             Process Refund
           </Button>
         )}
+        {currentValidTransitions.length > 0 && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="cursor-pointer"
+            onClick={() => setIsStatusModalOpen(true)}
+          >
+            Update Status
+          </Button>
+        )}
       </div>
 
       {/* Refund Dialog */}
-      <AlertDialog open={isRefundDialogOpen} onOpenChange={setIsRefundDialogOpen}>
+      <AlertDialog
+        open={isRefundDialogOpen}
+        onOpenChange={setIsRefundDialogOpen}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Process Refund Request</AlertDialogTitle>
             <AlertDialogDescription>
-              Approve to refund the payment and mark order as refunded. Reject to deny the request.
+              Approve to refund the payment and mark order as refunded. Reject
+              to deny the request.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="cursor-pointer">Cancel</AlertDialogCancel>
+            <AlertDialogCancel className="cursor-pointer">
+              Cancel
+            </AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive hover:bg-destructive/90 cursor-pointer"
               onClick={() => rejectRefund()}
@@ -305,6 +411,67 @@ export function AdminOrderDetailContent({ orderId }: AdminOrderDetailContentProp
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <Dialog open={isStatusModalOpen} onOpenChange={setIsStatusModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-playfair">
+              Update Order Status
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 mt-2">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">Current:</span>
+              <Badge
+                className={cn('border-0', STATUS_COLORS[order?.status ?? ''])}
+              >
+                {order?.status}
+              </Badge>
+            </div>
+
+            <Select value={newStatus} onValueChange={setNewStatus}>
+              <SelectTrigger className="cursor-pointer">
+                <SelectValue placeholder="Select new status" />
+              </SelectTrigger>
+              <SelectContent>
+                {currentValidTransitions.map((status) => (
+                  <SelectItem
+                    key={status}
+                    value={status}
+                    className="cursor-pointer"
+                  >
+                    {status}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {newStatus === 'SHIPPED' && (
+              <Input
+                placeholder="Tracking number (optional)"
+                value={trackingNumber}
+                onChange={(e) => setTrackingNumber(e.target.value)}
+              />
+            )}
+
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                className="flex-1 cursor-pointer"
+                onClick={() => setIsStatusModalOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                className="flex-1 bg-navy hover:bg-navy-light dark:bg-gold dark:hover:bg-gold-dark dark:text-navy text-white cursor-pointer"
+                disabled={!newStatus || isUpdatingStatus}
+                onClick={() => updateOrderStatus()}
+              >
+                Update Status
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
