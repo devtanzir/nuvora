@@ -14,19 +14,21 @@ function CallbackHandler() {
   const { setAuth } = useAuthStore();
 
   useEffect(() => {
-    const token = searchParams.get('token');
+    const code = searchParams.get('code');
 
-    if (!token) {
+    if (!code) {
       router.push(ROUTES.LOGIN);
       return;
     }
 
-    authCookies.setToken(token);
-
     authService
-      .getMe()
+      .exchangeOAuthCode(code)
+      .then((data) => {
+        authCookies.setToken(data.accessToken);
+        return authService.getMe();
+      })
       .then((user) => {
-        setAuth(user, token);
+        setAuth(user, authCookies.getToken()!);
         if (user.role === 'ADMIN') {
           router.push(ROUTES.ADMIN);
         } else {
@@ -48,7 +50,6 @@ function CallbackHandler() {
     </div>
   );
 }
-
 export default function AuthCallbackPage() {
   return (
     <Suspense

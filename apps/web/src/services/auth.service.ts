@@ -49,4 +49,8 @@ export const authService = {
   }): Promise<void> => {
     await api.post('/auth/reset-password', data);
   },
+  exchangeOAuthCode: async (code: string): Promise<{ accessToken: string }> => {
+  const res = await api.post<ApiResponse<{ accessToken: string }>>('/auth/exchange-oauth-code', { code });
+  return res.data.data;
+},
 };
