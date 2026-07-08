@@ -1,145 +1,72 @@
-// apps/web/src/components/common/NotificationDropdown.tsx
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation'; // 1. import router
-import { Bell, Check, Package, ShoppingCart } from 'lucide-react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Bell, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { userService } from '@/services/user.service';
-import { QUERY_KEYS } from '@/constants/query-keys';
 import { ROUTES } from '@/constants/routes';
-import { useAuthStore } from '@/store/auth.store';
-import { cn } from '@/lib/utils';
-import getErrorMessage from '@/lib/error';
-import { toast } from 'sonner';
+import { cn, timeAgo } from '@/lib/utils';
 
-const NOTIFICATION_ICONS: Record<string, typeof Bell> = {
-  ORDER_PLACED: ShoppingCart,
-  ORDER_STATUS_UPDATE: ShoppingCart,
-  REFUND_PROCESSED: ShoppingCart,
-  REFUND_REQUESTED: ShoppingCart,
-  BACK_IN_STOCK: Package,
-  WELCOME: Bell,
-  PASSWORD_RESET: Bell,
-  DEFAULT: Package,
-};
+import Badge from './badge';
+import { NOTIFICATION_ICONS } from './constants/notification-icons';
+import useNotification from './hooks/useNotification';
 
-export function NotificationDropdown() {
-  const { isAuthenticated } = useAuthStore();
-  const queryClient = useQueryClient();
-  const [isOpen, setIsOpen] = useState(false);
-  const router = useRouter(); // 2. inside component
 
-  const { data } = useQuery({
-    queryKey: QUERY_KEYS.NOTIFICATIONS(),
-    queryFn: () => userService.getNotifications({ limit: 10 }),
-    enabled: isAuthenticated,
-    refetchInterval: 30000,
-  });
 
-  const { mutate: markAllRead } = useMutation({
-    mutationFn: userService.markAllNotificationsRead,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.NOTIFICATIONS() });
-    },
-    onError: (error: unknown) => {
-      toast.error(getErrorMessage(error, 'Failed to mark as read'));
-    },
-  });
 
-  const { mutate: markRead } = useMutation({
-    mutationFn: userService.markNotificationRead,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.NOTIFICATIONS() });
-    },
-  });
+export function NotificationDropdown({ iconColor }: { iconColor: string }) {
 
-  const unreadCount = data?.unreadCount ?? 0;
-  const notifications = data?.notifications ?? [];
-
-  // 3. helper to extract order id from notification body
-  const extractOrderId = (body: string): string | null => {
-    const match = body.match(/cmq[a-z0-9]+/i); // cuid pattern
-    return match ? match[0] : null;
-  };
-
-  const handleNotificationClick = (notification: (typeof notifications)[number]) => {
-    // mark as read
-    if (!notification.isRead) {
-      markRead(notification.id);
-    }
-
-    // close dropdown
-    setIsOpen(false);
-
-    // navigate based on type
-    const orderId = extractOrderId(notification.body);
-
-    if (
-      (notification.type === 'ORDER_PLACED' ||
-        notification.type === 'ORDER_STATUS_UPDATE' ||
-        notification.type === 'REFUND_REQUESTED' ||
-        notification.type === 'REFUND_PROCESSED') &&
-      orderId
-    ) {
-      router.push(ROUTES.ORDER(orderId));
-    } else {
-      router.push(ROUTES.ORDERS); // fallback
-    }
-  };
+  const { isOpen, setIsOpen, unreadCount, notifications, markAllRead, handleNotificationClick, isAuthenticated } = useNotification();
 
   if (!isAuthenticated) return null;
 
   return (
     <div className="relative">
+      {/* Bell trigger */}
       <Button
         variant="ghost"
         size="icon"
-        className="relative cursor-pointer"
-        onClick={() => setIsOpen(!isOpen)}
+        className={`relative cursor-pointer ${iconColor}`}
+        onClick={() => setIsOpen((prev) => !prev)}
       >
+        <Badge count={unreadCount} />
         <Bell className="h-5 w-5" />
-        {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-destructive text-[10px] font-bold text-white flex items-center justify-center">
-            {unreadCount > 9 ? '9+' : unreadCount}
-          </span>
-        )}
         <span className="sr-only">Notifications</span>
       </Button>
 
       <AnimatePresence>
         {isOpen && (
           <>
+            {/* Backdrop */}
             <div
               className="fixed inset-0 z-40"
               onClick={() => setIsOpen(false)}
             />
 
+            {/* Dropdown panel */}
             <motion.div
-              initial={{ opacity: 0, y: 8, scale: 0.95 }}
+              initial={{ opacity: 0, y: 6, scale: 0.97 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 8, scale: 0.95 }}
-              transition={{ duration: 0.15 }}
-              className="absolute right-0 top-12 w-80 bg-card border border-border rounded-xl shadow-xl z-50 overflow-hidden"
+              exit={{ opacity: 0, y: 6, scale: 0.97 }}
+              transition={{ duration: 0.15, ease: 'easeOut' }}
+              className="absolute right-[-80px] md:right-0 top-12 w-70 md:w-80 bg-card border border-border rounded-xl shadow-xl z-50 overflow-hidden"
             >
+              {/* Header */}
               <div className="flex items-center justify-between px-4 py-3 border-b border-border">
                 <div className="flex items-center gap-2">
-                  <p className="font-medium text-sm text-navy dark:text-white">
+                  <p className="font-semibold text-sm text-foreground">
                     Notifications
                   </p>
                   {unreadCount > 0 && (
-                    <span className="h-5 px-1.5 rounded-full bg-destructive text-[10px] font-bold text-white flex items-center justify-center">
-                      {unreadCount}
+                    <span className="h-5 px-2 rounded-full bg-[#B58B45]/15 text-[10px] font-bold text-[#B58B45] flex items-center justify-center">
+                      {unreadCount} new
                     </span>
                   )}
                 </div>
                 {unreadCount > 0 && (
                   <button
                     onClick={() => markAllRead()}
-                    className="text-xs text-gold hover:underline flex items-center gap-1"
+                    className="flex items-center gap-1 text-xs text-[#B58B45] hover:text-[#B58B45]/80 transition-colors cursor-pointer"
                   >
                     <Check className="h-3 w-3" />
                     Mark all read
@@ -147,40 +74,60 @@ export function NotificationDropdown() {
                 )}
               </div>
 
-              <div className="max-h-80 overflow-y-auto">
+              {/* List */}
+              <div className="max-h-80 overflow-y-auto divide-y divide-border">
                 {notifications.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-10 gap-2">
-                    <Bell className="h-8 w-8 text-muted-foreground/30" />
+                  <div className="flex flex-col items-center justify-center py-12 gap-3">
+                    <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
+                      <Bell className="h-5 w-5 text-muted-foreground/40" />
+                    </div>
                     <p className="text-sm text-muted-foreground">
                       No notifications yet
                     </p>
                   </div>
                 ) : (
                   notifications.map((notification) => {
-                    const IconComponent = NOTIFICATION_ICONS[notification.type] ?? NOTIFICATION_ICONS.DEFAULT;
+                    const IconComponent =
+                      NOTIFICATION_ICONS[notification.type] ??
+                      NOTIFICATION_ICONS.DEFAULT;
 
                     return (
                       <div
                         key={notification.id}
-                        className={cn(
-                          'flex items-start gap-3 px-4 py-3 hover:bg-muted/50 transition-colors cursor-pointer border-b border-border last:border-0',
-                          !notification.isRead && 'bg-gold/5',
-                        )}
                         onClick={() => handleNotificationClick(notification)}
+                        className={cn(
+                          'flex items-start gap-3 px-4 py-3 hover:bg-muted/50 transition-colors cursor-pointer',
+                          !notification.isRead && 'bg-[#B58B45]/5',
+                        )}
                       >
-                        <div className="h-8 w-8 rounded-full bg-navy/10 dark:bg-white/10 flex items-center justify-center shrink-0 mt-0.5">
-                          <IconComponent className="h-4 w-4 text-gold" />
+                        {/* Icon */}
+                        <div className="h-8 w-8 rounded-full bg-[#B58B45]/10 flex items-center justify-center shrink-0 mt-0.5">
+                          <IconComponent className="h-4 w-4 text-[#B58B45]" />
                         </div>
+
+                        {/* Text */}
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-navy dark:text-white line-clamp-1">
-                            {notification.title}
-                          </p>
+                          <div className="flex items-start justify-between gap-2">
+                            <p className={cn(
+                              'text-sm line-clamp-1 text-foreground',
+                              !notification.isRead ? 'font-semibold' : 'font-medium',
+                            )}>
+                              {notification.title}
+                            </p>
+                            {'createdAt' in notification && (
+                              <span className="text-[10px] text-muted-foreground shrink-0 mt-0.5">
+                                {timeAgo(notification.createdAt as string)}
+                              </span>
+                            )}
+                          </div>
                           <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
                             {notification.body}
                           </p>
                         </div>
+
+                        {/* Unread dot */}
                         {!notification.isRead && (
-                          <div className="h-2 w-2 rounded-full bg-gold shrink-0 mt-1.5" />
+                          <div className="h-2 w-2 rounded-full bg-[#B58B45] shrink-0 mt-1.5" />
                         )}
                       </div>
                     );
@@ -188,11 +135,12 @@ export function NotificationDropdown() {
                 )}
               </div>
 
-              <div className="px-4 py-3 border-t border-border">
+              {/* Footer */}
+              <div className="px-4 py-3 border-t border-border bg-muted/30">
                 <Link
                   href={ROUTES.NOTIFICATIONS}
-                  className="text-xs text-gold hover:underline block text-center"
                   onClick={() => setIsOpen(false)}
+                  className="text-xs text-[#B58B45] hover:text-[#B58B45]/80 transition-colors block text-center font-medium"
                 >
                   View all notifications
                 </Link>

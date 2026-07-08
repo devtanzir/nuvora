@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { User, Package, Heart, LogOut, LayoutDashboard } from 'lucide-react';
+import { User, Package, LogOut, LayoutDashboard } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,12 +18,12 @@ import { useLogout, useMe } from '@/hooks/use-auth';
 import { ROUTES } from '@/constants/routes';
 import { useMounted } from '@/hooks/use-mounted';
 
-export function UserMenu() {
+export function UserMenu({ iconColor }: { iconColor?: string }) {
   const { user, isAuthenticated } = useAuthStore();
   const { mutate: logout, isPending } = useLogout();
   const { isLoading } = useMe();
 
-const mounted = useMounted();
+  const mounted = useMounted();
 
   if (!mounted || isLoading) {
     return <Skeleton className="h-8 w-8 rounded-full" />;
@@ -31,18 +31,38 @@ const mounted = useMounted();
 
   if (!isAuthenticated) {
     return (
-      <div className="hidden md:flex items-center gap-2">
-        <Button variant="ghost" size="sm" className="cursor-pointer" asChild>
-          <Link href={ROUTES.LOGIN}>Sign In</Link>
-        </Button>
-        <Button
-          size="sm"
-          className="bg-navy hover:bg-navy-light dark:bg-gold dark:hover:bg-gold-dark dark:text-navy text-white cursor-pointer"
-          asChild
-        >
-          <Link href={ROUTES.REGISTER}>Sign Up</Link>
-        </Button>
-      </div>
+      <>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className={`transition-colors cursor-pointer ${iconColor}`}
+              aria-label="User menu"
+            >
+              <User className="h-5 w-5" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            align="end"
+            sideOffset={8}
+            className="w-52 rounded-xl border border-border bg-card shadow-lg p-1.5"
+          >
+            <DropdownMenuItem
+              asChild
+              className="rounded-lg cursor-pointer text-sm"
+            >
+              <Link href={ROUTES.LOGIN}>Sign In</Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              asChild
+              className="rounded-lg cursor-pointer text-sm"
+            >
+              <Link href={ROUTES.REGISTER}>Create Account</Link>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </>
     );
   }
 
@@ -52,7 +72,7 @@ const mounted = useMounted();
         <Button
           variant="ghost"
           size="icon"
-          className="rounded-full cursor-pointer"
+          className={`rounded-full cursor-pointer ${iconColor}`}
         >
           <Avatar className="h-8 w-8">
             <AvatarImage src={user?.avatar ?? ''} alt={user?.name} />
@@ -91,12 +111,6 @@ const mounted = useMounted();
           <Link href={ROUTES.ORDERS} className="cursor-pointer">
             <Package className="mr-2 h-4 w-4" />
             Orders
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link href={ROUTES.WISHLIST} className="cursor-pointer">
-            <Heart className="mr-2 h-4 w-4" />
-            Wishlist
           </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />

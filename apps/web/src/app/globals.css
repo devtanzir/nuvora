@@ -47,7 +47,7 @@
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
 
-  /* Nuvora Brand Colors */
+  /* Nuvora Brand Colors (updated to Warm Luxury palette) */
   --color-navy: var(--navy);
   --color-navy-light: var(--navy-light);
   --color-navy-dark: var(--navy-dark);
@@ -57,90 +57,90 @@
 }
 
 :root {
-  /* Nuvora Brand */
-  --navy: #1B2D4F;
-  --navy-light: #243d6a;
-  --navy-dark: #111e33;
-  --gold: #C9A84C;
-  --gold-light: #d4b86a;
-  --gold-dark: #a8892f;
+  /* ───── Nuvora Brand (Warm Luxury) ───── */
+  --navy: #3A322B;              /* Espresso Brown */
+  --navy-light: #4B3F35;
+  --navy-dark: #2C2520;
+  --gold: #B58B45;              /* Antique Gold */
+  --gold-light: #C29B5C;
+  --gold-dark: #9B7235;
 
-  /* Light Mode */
-  --background: oklch(0.99 0 0);
-  --foreground: #1B2D4F;
-  --card: oklch(1 0 0);
-  --card-foreground: #1B2D4F;
-  --popover: oklch(1 0 0);
-  --popover-foreground: #1B2D4F;
-  --primary: #1B2D4F;
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: #1B2D4F;
-  --muted: oklch(0.96 0 0);
-  --muted-foreground: oklch(0.5 0 0);
-  --accent: #C9A84C;
-  --accent-foreground: oklch(1 0 0);
+  /* ───── Light Mode ───── */
+  --background: #F8F5F0;        /* Warm Linen */
+  --foreground: #252525;        /* Charcoal */
+  --card: #FFFCF8;              /* Soft White */
+  --card-foreground: #252525;
+  --popover: #FFFCF8;
+  --popover-foreground: #252525;
+  --primary: #3A322B;           /* Espresso */
+  --primary-foreground: #FFFCF8;
+  --secondary: #F0EDE6;         /* Warm muted */
+  --secondary-foreground: #3A322B;
+  --muted: #F0EDE6;
+  --muted-foreground: #6D665F;  /* Warm grey */
+  --accent: #B58B45;
+  --accent-foreground: #FFFCF8;
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.9 0 0);
-  --input: oklch(0.92 0 0);
-  --ring: #C9A84C;
+  --border: #E6DDD2;            /* Warm beige */
+  --input: #EDE8DF;
+  --ring: #B58B45;
   --radius: 0.5rem;
 
   /* Charts */
-  --chart-1: #1B2D4F;
-  --chart-2: #C9A84C;
-  --chart-3: #243d6a;
-  --chart-4: #d4b86a;
+  --chart-1: #3A322B;
+  --chart-2: #B58B45;
+  --chart-3: #4B3F35;
+  --chart-4: #C29B5C;
   --chart-5: oklch(0.439 0 0);
 
   /* Sidebar */
-  --sidebar: #1B2D4F;
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: #C9A84C;
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: #243d6a;
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: #C9A84C;
+  --sidebar: #3A322B;
+  --sidebar-foreground: #FFFCF8;
+  --sidebar-primary: #B58B45;
+  --sidebar-primary-foreground: #FFFCF8;
+  --sidebar-accent: #4B3F35;
+  --sidebar-accent-foreground: #FFFCF8;
+  --sidebar-border: rgba(255, 252, 248, 0.1);
+  --sidebar-ring: #B58B45;
 }
 
 .dark {
-  /* Nuvora Brand Dark */
-  --background: #0d1624;
-  --foreground: oklch(0.95 0 0);
-  --card: #111e33;
-  --card-foreground: oklch(0.95 0 0);
-  --popover: #111e33;
-  --popover-foreground: oklch(0.95 0 0);
-  --primary: #C9A84C;
-  --primary-foreground: #0d1624;
-  --secondary: #1B2D4F;
-  --secondary-foreground: oklch(0.95 0 0);
-  --muted: #1B2D4F;
-  --muted-foreground: oklch(0.65 0 0);
-  --accent: #C9A84C;
-  --accent-foreground: #0d1624;
+  /* ───── Dark Mode (kept comfortable) ───── */
+  --background: #1E1B18;          /* Deep espresso */
+  --foreground: #F0EDE6;
+  --card: #2A2522;
+  --card-foreground: #F0EDE6;
+  --popover: #2A2522;
+  --popover-foreground: #F0EDE6;
+  --primary: #B58B45;
+  --primary-foreground: #1E1B18;
+  --secondary: #3A322B;
+  --secondary-foreground: #F0EDE6;
+  --muted: #3A322B;
+  --muted-foreground: #A0948A;
+  --accent: #B58B45;
+  --accent-foreground: #1E1B18;
   --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 8%);
-  --input: oklch(1 0 0 / 10%);
-  --ring: #C9A84C;
+  --border: rgba(240, 237, 230, 0.08);
+  --input: rgba(240, 237, 230, 0.10);
+  --ring: #B58B45;
 
   /* Charts Dark */
-  --chart-1: #C9A84C;
-  --chart-2: #d4b86a;
-  --chart-3: #243d6a;
-  --chart-4: #1B2D4F;
+  --chart-1: #B58B45;
+  --chart-2: #C29B5C;
+  --chart-3: #4B3F35;
+  --chart-4: #3A322B;
   --chart-5: oklch(0.556 0 0);
 
   /* Sidebar Dark */
-  --sidebar: #111e33;
-  --sidebar-foreground: oklch(0.95 0 0);
-  --sidebar-primary: #C9A84C;
-  --sidebar-primary-foreground: #0d1624;
-  --sidebar-accent: #1B2D4F;
-  --sidebar-accent-foreground: oklch(0.95 0 0);
-  --sidebar-border: oklch(1 0 0 / 8%);
-  --sidebar-ring: #C9A84C;
+  --sidebar: #1E1B18;
+  --sidebar-foreground: #F0EDE6;
+  --sidebar-primary: #B58B45;
+  --sidebar-primary-foreground: #1E1B18;
+  --sidebar-accent: #3A322B;
+  --sidebar-accent-foreground: #F0EDE6;
+  --sidebar-border: rgba(240, 237, 230, 0.08);
+  --sidebar-ring: #B58B45;
 }
 
 @layer base {
@@ -164,7 +164,6 @@
     width: 0px;
     background: transparent;
   }
-
 }
 
 @layer utilities {

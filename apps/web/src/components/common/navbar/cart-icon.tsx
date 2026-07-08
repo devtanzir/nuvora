@@ -3,24 +3,21 @@
 import { ShoppingBag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCartStore } from '@/store/cart.store';
+import Badge from './badge';
 
-export function CartIcon() {
+export function CartIcon({ iconColor }: { iconColor: string }) {
   const { itemCount, toggleCart } = useCartStore();
 
   return (
     <Button
       variant="ghost"
       size="icon"
-      className="relative cursor-pointer"
+      className={`hidden md:inline-flex relative transition-colors cursor-pointer ${iconColor}`}
       onClick={toggleCart}
+      aria-label={`Cart (${itemCount} items)`}
     >
       <ShoppingBag className="h-5 w-5" />
-      {itemCount > 0 && (
-        <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-gold text-[10px] font-bold text-navy flex items-center justify-center">
-          {itemCount > 9 ? '9+' : itemCount}
-        </span>
-      )}
-      <span className="sr-only">Cart</span>
+      <Badge count={itemCount} />
     </Button>
   );
 }

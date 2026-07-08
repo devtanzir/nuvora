@@ -5,27 +5,26 @@ import { Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useWishlist } from '@/hooks/use-wishlist';
 import { ROUTES } from '@/constants/routes';
+import Badge from './badge';
 
-export function WishlistIcon() {
+export function WishlistIcon({ iconColor }: { iconColor: string }) {
   const { data } = useWishlist();
   const count = data?.meta.total ?? 0;
 
   return (
-    <Button
-      variant="ghost"
-      size="icon"
-      className="relative cursor-pointer"
-      asChild
-    >
-      <Link href={ROUTES.WISHLIST}>
-        <Heart className={`h-5 w-5 transition-colors`} />
-        {count > 0 && (
-          <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-gold text-[10px] font-bold text-navy flex items-center justify-center">
-            {count > 9 ? '9+' : count}
-          </span>
-        )}
-        <span className="sr-only">Wishlist</span>
-      </Link>
-    </Button>
+    <>
+      <Button
+        variant="ghost"
+        size="icon"
+        className={`hidden md:inline-flex relative transition-colors ${iconColor}`}
+        asChild
+        aria-label={`Wishlist (${count} items)`}
+      >
+        <Link href={ROUTES.WISHLIST}>
+          <Heart className="h-5 w-5" />
+          <Badge count={count} />
+        </Link>
+      </Button>
+    </>
   );
 }
