@@ -19,7 +19,7 @@ const SmallDropdown = ({ item }: { item: NavItem }) => {
         <Link
           key={sub.href}
           href={sub.href}
-          className="block text-sm text-foreground hover:text-[#B58B45] hover:bg-accent/30 transition-colors duration-150 rounded-lg px-3 py-2"
+          className="block text-sm text-foreground hover:text-accent hover:bg-accent/30 transition-colors duration-150 rounded-lg px-3 py-2"
         >
           {sub.label}
         </Link>

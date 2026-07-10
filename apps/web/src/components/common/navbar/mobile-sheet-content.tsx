@@ -51,7 +51,7 @@ const MobileSheetContent = ({
                   <Link
                     href={item.href ?? '#'}
                     onClick={onClose}
-                    className="flex items-center py-4 text-base font-medium text-foreground hover:text-[#B58B45] transition-colors"
+                    className="flex items-center py-4 text-base font-medium text-foreground hover:text-accent transition-colors"
                   >
                     {item.label}
                   </Link>
@@ -70,7 +70,7 @@ const MobileSheetContent = ({
                 value={item.label}
                 className="border-b border-border"
               >
-                <AccordionTrigger className="py-4 text-base font-medium text-foreground hover:text-[#B58B45] hover:no-underline [&>svg]:text-[#B58B45]">
+                <AccordionTrigger className="py-4 text-base font-medium text-foreground hover:text-accent hover:no-underline [&>svg]:text-accent">
                   {item.label}
                 </AccordionTrigger>
                 <AccordionContent className="pb-3 pt-0">
@@ -80,7 +80,7 @@ const MobileSheetContent = ({
                         key={sub.href}
                         href={sub.href}
                         onClick={onClose}
-                        className="py-2 text-sm text-muted-foreground hover:text-[#B58B45] transition-colors"
+                        className="py-2 text-sm text-muted-foreground hover:text-accent transition-colors"
                       >
                         {sub.label}
                       </Link>
@@ -99,7 +99,7 @@ const MobileSheetContent = ({
           <Button
             asChild
             variant="outline"
-            className="w-full border-[#B58B45] text-[#B58B45] hover:bg-[#B58B45]/10"
+            className="w-full border-accent text-accent hover:bg-accent/10"
           >
             <Link href="/auth/login" onClick={onClose}>
               Sign In
@@ -107,7 +107,7 @@ const MobileSheetContent = ({
           </Button>
           <Button
             asChild
-            className="w-full bg-[#3A322B] text-white hover:bg-[#3A322B]/90"
+            className="w-full bg-secondary text-white hover:bg-secondary/90"
           >
             <Link href="/auth/register" onClick={onClose}>
               Create Account

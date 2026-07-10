@@ -33,7 +33,7 @@ const MegaMenu = ({
                 <Link
                   key={sub.href}
                   href={sub.href}
-                  className="text-sm text-foreground hover:text-[#B58B45] transition-colors duration-150 py-0.5"
+                  className="text-sm text-foreground hover:text-accent transition-colors duration-150 py-0.5"
                 >
                   {sub.label}
                 </Link>
@@ -55,7 +55,7 @@ const MegaMenu = ({
                   className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                 />
               </div>
-              <p className="text-[11px] font-medium text-foreground mt-1.5 group-hover:text-[#B58B45] transition-colors">
+              <p className="text-[11px] font-medium text-foreground mt-1.5 group-hover:text-accent transition-colors">
                 {img.title}
               </p>
             </Link>

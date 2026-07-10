@@ -20,7 +20,7 @@ function DesktopNavItem({
     return (
       <Link
         href={item.href ?? '#'}
-        className={`relative text-sm font-medium transition-colors duration-200 ${linkColor} ${open ? 'text-[#B58B45]' : ''} px-1 py-1`}
+        className={`relative text-sm font-medium transition-colors duration-200 ${linkColor} ${open ? 'text-accent' : ''} px-1 py-1`}
       >
         {item.label}
       </Link>
@@ -36,8 +36,8 @@ function DesktopNavItem({
     >
       <button
         className={`flex items-center gap-1 text-sm font-medium transition-colors duration-200 px-1 py-1 cursor-pointer
-          ${isTransparent ? 'text-white/90 hover:text-white' : 'text-foreground hover:text-[#B58B45]'} ${linkColor}
-          ${open ? (isTransparent ? 'text-white' : 'text-[#B58B45]') : ''}
+          ${isTransparent ? 'text-white/90 hover:text-white' : 'text-foreground hover:text-accent'} ${linkColor}
+          ${open ? (isTransparent ? 'text-white' : 'text-accent') : ''}
         `}
         aria-expanded={open}
         aria-haspopup="true"

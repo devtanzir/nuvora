@@ -20,6 +20,7 @@ import { MobileBottomNav } from './mobile-bottom-nav';
 import MobileSheetContent from './mobile-sheet-content';
 import useNavbar from './hooks/useNavbar';
 import LogoComponent from './logo-component';
+import AnnouncementBar from '../announcement-bar';
 
 export function Navbar() {
   const {
@@ -36,13 +37,15 @@ export function Navbar() {
 
   return (
     <>
+    <div className="sticky top-0 left-0 right-0 z-50 flex flex-col">
+        <AnnouncementBar visible={scrolled} />
       <motion.header
         animate={{
           height: scrolled ? 64 : 80,
         }}
         transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-        className={`fixed top-0 left-0 right-0 z-50 flex items-center
-    ${scrolled ? 'bg-background/70 backdrop-blur-md shadow-sm' : 'bg-transparent'}
+        className={`flex items-center
+    ${scrolled ? 'bg-background/70 backdrop-blur-md shadow-sm w-full' : 'fixed top-0 left-0 right-0 z-50 bg-transparent'}
   `}
         style={{ willChange: 'height' }}
       >
@@ -115,7 +118,7 @@ export function Navbar() {
           </div>
         </div>
       </motion.header>
-
+</div>
       {/* Mobile Sheet */}
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
         <SheetContent

@@ -58,7 +58,7 @@ export function NotificationDropdown({ iconColor }: { iconColor: string }) {
                     Notifications
                   </p>
                   {unreadCount > 0 && (
-                    <span className="h-5 px-2 rounded-full bg-[#B58B45]/15 text-[10px] font-bold text-[#B58B45] flex items-center justify-center">
+                    <span className="h-5 px-2 rounded-full bg-accent/15 text-[10px] font-bold text-accent flex items-center justify-center">
                       {unreadCount} new
                     </span>
                   )}
@@ -66,7 +66,7 @@ export function NotificationDropdown({ iconColor }: { iconColor: string }) {
                 {unreadCount > 0 && (
                   <button
                     onClick={() => markAllRead()}
-                    className="flex items-center gap-1 text-xs text-[#B58B45] hover:text-[#B58B45]/80 transition-colors cursor-pointer"
+                    className="flex items-center gap-1 text-xs text-accent hover:text-accent/80 transition-colors cursor-pointer"
                   >
                     <Check className="h-3 w-3" />
                     Mark all read
@@ -97,12 +97,12 @@ export function NotificationDropdown({ iconColor }: { iconColor: string }) {
                         onClick={() => handleNotificationClick(notification)}
                         className={cn(
                           'flex items-start gap-3 px-4 py-3 hover:bg-muted/50 transition-colors cursor-pointer',
-                          !notification.isRead && 'bg-[#B58B45]/5',
+                          !notification.isRead && 'bg-accent/5',
                         )}
                       >
                         {/* Icon */}
-                        <div className="h-8 w-8 rounded-full bg-[#B58B45]/10 flex items-center justify-center shrink-0 mt-0.5">
-                          <IconComponent className="h-4 w-4 text-[#B58B45]" />
+                        <div className="h-8 w-8 rounded-full bg-accent/10 flex items-center justify-center shrink-0 mt-0.5">
+                          <IconComponent className="h-4 w-4 text-accent" />
                         </div>
 
                         {/* Text */}
@@ -127,7 +127,7 @@ export function NotificationDropdown({ iconColor }: { iconColor: string }) {
 
                         {/* Unread dot */}
                         {!notification.isRead && (
-                          <div className="h-2 w-2 rounded-full bg-[#B58B45] shrink-0 mt-1.5" />
+                          <div className="h-2 w-2 rounded-full bg-accent shrink-0 mt-1.5" />
                         )}
                       </div>
                     );
@@ -140,7 +140,7 @@ export function NotificationDropdown({ iconColor }: { iconColor: string }) {
                 <Link
                   href={ROUTES.NOTIFICATIONS}
                   onClick={() => setIsOpen(false)}
-                  className="text-xs text-[#B58B45] hover:text-[#B58B45]/80 transition-colors block text-center font-medium"
+                  className="text-xs text-accent hover:text-accent/80 transition-colors block text-center font-medium"
                 >
                   View all notifications
                 </Link>

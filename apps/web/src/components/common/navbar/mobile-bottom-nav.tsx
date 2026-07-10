@@ -39,7 +39,7 @@ const {navItems, isActive} = useMobileNav();
                 {active && (
                   <motion.span
                     layoutId="bottom-nav-active"
-                    className="absolute inset-0 -m-2 rounded-full bg-[#B58B45]/15 dark:bg-[#B58B45]/20"
+                    className="absolute inset-0 -m-2 rounded-full bg-accent/15 dark:bg-accent/20"
                     transition={{
                       type: 'spring',
                       stiffness: 380,
@@ -52,12 +52,12 @@ const {navItems, isActive} = useMobileNav();
                 <motion.span
                   animate={{
                     scale: active ? 1.1 : 1,
-                    color: active ? '#B58B45' : "#a0948a",
+                    color: active ? 'var(--accent)' : "var(--muted-foreground)",
                   }}
                   transition={{ type: 'spring', stiffness: 400, damping: 25 }}
                   className={
                     active
-                      ? 'text-[#B58B45] relative z-10'
+                      ? 'text-accent relative z-10'
                       : 'text-muted-foreground relative z-10'
                   }
                 >
@@ -66,7 +66,7 @@ const {navItems, isActive} = useMobileNav();
 
                 {/* Badge */}
                 {count !== undefined && count > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 h-4 min-w-4 rounded-full bg-[#B58B45] text-[10px] font-semibold text-white flex items-center justify-center px-[3px] leading-none z-20">
+                  <span className="absolute -top-1.5 -right-1.5 h-4 min-w-4 rounded-full bg-accent text-[10px] font-semibold text-white flex items-center justify-center px-[3px] leading-none z-20">
                     {count > 99 ? '99+' : count}
                   </span>
                 )}
@@ -75,12 +75,12 @@ const {navItems, isActive} = useMobileNav();
               {/* Label */}
               <motion.span
                 animate={{
-                  color: active ? '#B58B45' : "#a0948a",
+                  color: active ? 'var(--accent)' : "var(--muted-foreground)",
                   fontWeight: active ? 600 : 400,
                 }}
                 transition={{ duration: 0.15 }}
                 className={`text-[10px] leading-none ${
-                  active ? 'text-[#B58B45]' : 'text-muted-foreground'
+                  active ? 'text-accent' : 'text-muted-foreground'
                 }`}
               >
                 {label}
