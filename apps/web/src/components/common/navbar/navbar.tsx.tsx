@@ -37,7 +37,7 @@ export function Navbar() {
 
   return (
     <>
-    <div className="sticky top-0 left-0 right-0 z-50 flex flex-col">
+    <div className={`sticky top-0 left-0 right-0 z-50 flex flex-col`}>
         <AnnouncementBar visible={scrolled} />
       <motion.header
         animate={{
@@ -45,7 +45,7 @@ export function Navbar() {
         }}
         transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
         className={`flex items-center
-    ${scrolled ? 'bg-background/70 backdrop-blur-md shadow-sm w-full' : 'fixed top-0 left-0 right-0 z-50 bg-transparent'}
+    ${scrolled ? 'bg-background/70 backdrop-blur-md shadow-sm w-full' : 'fixed top-0 left-0 right-0 z-50 bg-transparent '}
   `}
         style={{ willChange: 'height' }}
       >
@@ -53,7 +53,6 @@ export function Navbar() {
           {/* Logo */}
           <LogoComponent
             scrolled={scrolled}
-            isTransparent={isTransparent}
             isDarkMode={isDarkMode}
           />
 
@@ -66,7 +65,7 @@ export function Navbar() {
               <DesktopNavItem
                 key={item.label}
                 item={item}
-                isTransparent={isTransparent}
+                isTransparent={false}
               />
             ))}
           </nav>

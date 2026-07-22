@@ -35,6 +35,7 @@ export const NAV_ITEMS: NavItem[] = [
           { label: 'New Arrivals', href: '/products?sortBy=newest' },
           { label: 'Best Sellers', href: '/products?sortBy=most_reviewed' },
           { label: 'Sale', href: '/products?sortBy=price_asc&page=1' },
+          { label: 'Featured', href: '/products?category=featured&page=1' },
         ],
       },
       {

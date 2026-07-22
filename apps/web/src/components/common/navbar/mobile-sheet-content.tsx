@@ -36,7 +36,6 @@ const MobileSheetContent = ({
       <div className="mb-6">
         <LogoComponent
           scrolled={scrolled}
-          isTransparent={isTransparent}
           isDarkMode={isDarkMode}
         />
       </div>

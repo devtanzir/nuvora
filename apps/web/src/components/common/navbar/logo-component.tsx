@@ -6,11 +6,9 @@ import NuvoraTextLogo from '../icons/nuvora-text-logo';
 
 const LogoComponent = ({
   scrolled,
-  isTransparent,
   isDarkMode,
 }: {
   scrolled: boolean;
-  isTransparent: boolean;
   isDarkMode: boolean;
 }) => {
   return (
@@ -22,10 +20,7 @@ const LogoComponent = ({
     `}
         >
           <Image
-            src={
-              isTransparent
-                ? NuvoraLogoLight
-                : isDarkMode
+            src={ isDarkMode
                   ? NuvoraLogoLight
                   : NuvoraLogoDark
             }
@@ -36,7 +31,7 @@ const LogoComponent = ({
           />
           <NuvoraTextLogo
             className="h-14 w-full -translate-x-5"
-            isTransparent={isTransparent}
+            isTransparent={false}
             isDarkMode={isDarkMode}
           />
         </div>

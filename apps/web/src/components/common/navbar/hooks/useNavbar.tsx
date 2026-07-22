@@ -25,7 +25,7 @@ const useNavbar = () => {
 
   // Icon color classes based on scroll
   const iconColor = isTransparent
-    ? 'text-white/90 hover:text-[#B58B45]'
+    ? 'hover:text-[#B58B45]'
     : 'text-foreground hover:text-[#B58B45]';
 
     return {
