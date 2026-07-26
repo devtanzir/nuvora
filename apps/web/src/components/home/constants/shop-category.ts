@@ -6,9 +6,7 @@ export const EASE_CLASS = 'ease-[cubic-bezier(0.16,1,0.3,1)]';
 export const HOVER_SPRING = { type: 'spring', stiffness: 140, damping: 20, mass: 0.5 } as const;
 export const PARALLAX_STRENGTH = 18; // px of drift each way while the image travels through the viewport
 
-/* Hover variants — propagated from the card Link's whileHover/whileFocus   */
-/* state down to each child automatically. No React state, no re-renders    */
-/* on hover; end values match what was previously driven by useState.       */
+
 export const IMAGE_HOVER_VARIANTS = {
   rest: { scale: 1, filter: 'brightness(1)' },
   hover: { scale: 1.03, filter: 'brightness(1.02)' },

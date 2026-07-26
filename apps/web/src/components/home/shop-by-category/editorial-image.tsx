@@ -31,7 +31,7 @@ function EditorialImage({
   return (
     <div ref={revealRef} className={`invisible ${className}`}>
       <MotionLink
-        href={`/categories/${category.slug}`}
+        href={`products?category=${category.slug}&page=1`}
         initial="rest"
         whileHover="hover"
         whileFocus="hover"
