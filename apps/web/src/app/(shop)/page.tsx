@@ -1,4 +1,5 @@
 import BrandValuesSection from '@/components/home/brand-value/brand-value';
+import EditorialPause from '@/components/home/editorial-campaign/editorial-campaign';
 import FeaturedCollection from '@/components/home/featured-collection/featured-collection';
 import HeroSection from '@/components/home/hero/hero-section';
 import ShopByCategory from '@/components/home/shop-by-category/shop-by-category';
@@ -21,6 +22,7 @@ export default function HomePage() {
       <BrandValuesSection />
       <FeaturedCollection/>
       <ShopByCategory/>
+      <EditorialPause/>
       <div className="container mx-auto px-4 py-8">
         <BannerSlider />
       </div>
