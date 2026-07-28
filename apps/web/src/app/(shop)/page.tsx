@@ -2,6 +2,7 @@ import BrandValuesSection from '@/components/home/brand-value/brand-value';
 import EditorialPause from '@/components/home/editorial-campaign/editorial-campaign';
 import FeaturedCollection from '@/components/home/featured-collection/featured-collection';
 import HeroSection from '@/components/home/hero/hero-section';
+import NewArrivals from '@/components/home/new-arrivals/new-arrivals';
 import ShopByCategory from '@/components/home/shop-by-category/shop-by-category';
 import { BannerSlider } from '@/components/product/banner-slider';
 import { CategoriesSection } from '@/components/product/categories-section';
@@ -23,6 +24,7 @@ export default function HomePage() {
       <FeaturedCollection/>
       <ShopByCategory/>
       <EditorialPause/>
+      <NewArrivals/>
       <div className="container mx-auto px-4 py-8">
         <BannerSlider />
       </div>
