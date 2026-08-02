@@ -1,13 +1,12 @@
+import BrandPhilosophy from '@/components/home/brand-philosophy/brand-philosophy';
 import BrandValuesSection from '@/components/home/brand-value/brand-value';
 import EditorialPause from '@/components/home/editorial-campaign/editorial-campaign';
 import FeaturedCollection from '@/components/home/featured-collection/featured-collection';
 import HeroSection from '@/components/home/hero/hero-section';
 import NewArrivals from '@/components/home/new-arrivals/new-arrivals';
+import Newsletter from '@/components/home/newsletter/newsletter';
 import ShopByCategory from '@/components/home/shop-by-category/shop-by-category';
-import { BannerSlider } from '@/components/product/banner-slider';
-import { CategoriesSection } from '@/components/product/categories-section';
-import { FeaturedProducts } from '@/components/product/featured-products';
-import { RecentlyViewedSection } from '@/components/product/recently-viewed-section';
+import Testimonials from '@/components/home/testimonials/testimonial';
 import type { Metadata } from 'next';
 
 
@@ -25,12 +24,9 @@ export default function HomePage() {
       <ShopByCategory/>
       <EditorialPause/>
       <NewArrivals/>
-      <div className="container mx-auto px-4 py-8">
-        <BannerSlider />
-      </div>
-      <CategoriesSection />
-      <FeaturedProducts />
-      <RecentlyViewedSection />
+      <BrandPhilosophy/>
+      <Testimonials/>
+      <Newsletter/>
     </>
   );
 }

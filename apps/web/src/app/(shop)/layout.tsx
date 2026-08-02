@@ -1,8 +1,8 @@
 import { Suspense } from 'react';
 import { LoginRedirectHandler } from '@/components/common/login-redirect-handler';
-import { Footer } from '@/components/common/footer';
 import { MobileBottomNav } from '@/components/common/navbar/mobile-bottom-nav';
 import Navbar from '@/components/common/navbar/navbar.tsx';
+import SiteFooter from '@/components/common/footer/site-footer';
 
 export default function ShopLayout({
   children,
@@ -14,7 +14,7 @@ export default function ShopLayout({
       <LoginRedirectHandler />
       <Navbar />
       <main>{children}</main>
-      <Footer />
+      <SiteFooter/>
       <MobileBottomNav />
     </Suspense>
   );
